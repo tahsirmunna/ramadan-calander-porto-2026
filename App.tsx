@@ -50,6 +50,41 @@ const DEFAULT_SETTINGS: AppSettings = {
   voiceVolume: 0.8
 };
 
+/** 
+ * Decodes raw PCM data from Gemini TTS into an AudioBuffer.
+ * Handles byte alignment and normalization.
+ */
+async function decodeRawPCM(
+  base64Data: string,
+  ctx: AudioContext,
+  sampleRate: number = 24000,
+  numChannels: number = 1
+): Promise<AudioBuffer> {
+  const binaryString = atob(base64Data);
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+
+  const numSamples = Math.floor(bytes.length / 2);
+  const dataInt16 = new Int16Array(numSamples);
+  const view = new DataView(bytes.buffer);
+
+  for (let i = 0; i < numSamples; i++) {
+    dataInt16[i] = view.getInt16(i * 2, true);
+  }
+
+  const buffer = ctx.createBuffer(numChannels, numSamples, sampleRate);
+  for (let channel = 0; channel < numChannels; channel++) {
+    const channelData = buffer.getChannelData(channel);
+    for (let i = 0; i < numSamples; i++) {
+      channelData[i] = dataInt16[i] / 32768.0;
+    }
+  }
+  return buffer;
+}
+
 export default function App() {
   const [settings, setSettings] = useState<AppSettings>(() => {
     try {
@@ -89,11 +124,13 @@ export default function App() {
     return valStr.split('').map(char => map[char] || char).join('');
   };
 
-  const getAudioContext = () => {
+  const getAudioContext = async () => {
     if (!audioContextRef.current) {
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
     }
-    if (audioContextRef.current.state === 'suspended') audioContextRef.current.resume();
+    if (audioContextRef.current.state === 'suspended') {
+      await audioContextRef.current.resume();
+    }
     return audioContextRef.current;
   };
 
@@ -162,10 +199,11 @@ export default function App() {
         const response = await fetch(ADHAN_URL);
         if (!response.ok) throw new Error("Primary Adhan failed");
         const arrayBuffer = await response.arrayBuffer();
-        const ctx = getAudioContext();
+        const ctx = await getAudioContext();
         const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
         adhanBufferRef.current = audioBuffer;
       } catch (err) {
+        console.warn("Adhan prefetch failed, falling back to element playback", err);
         adhanAudioFallbackRef.current = new Audio(ADHAN_URL);
         adhanAudioFallbackRef.current.addEventListener('error', () => {
            if (adhanAudioFallbackRef.current) adhanAudioFallbackRef.current.src = ADHAN_FALLBACK_URL;
@@ -200,8 +238,12 @@ export default function App() {
     const todayData = CALENDAR_DATA[currentDayIndex];
     if (!todayData) return;
     const timeStr = now.toTimeString().slice(0, 5);
-    if (settings.iftarAlarmEnabled && timeStr === todayData.iftar && now.getSeconds() === 0 && isTodayDate(todayData.date)) playAdhan();
-    if (settings.suhoorAlarmEnabled && timeStr === todayData.suhoor && now.getSeconds() === 0 && isTodayDate(todayData.date)) playSuhoorWarning();
+    if (settings.iftarAlarmEnabled && timeStr === todayData.iftar && now.getSeconds() === 0 && isTodayDate(todayData.date)) {
+      playAdhan();
+    }
+    if (settings.suhoorAlarmEnabled && timeStr === todayData.suhoor && now.getSeconds() === 0 && isTodayDate(todayData.date)) {
+      playSuhoorWarning();
+    }
   };
 
   const stopCurrentAudio = () => {
@@ -221,7 +263,7 @@ export default function App() {
     stopCurrentAudio();
     if (isPreview) setIsPreviewing('adhan');
     
-    const ctx = getAudioContext();
+    const ctx = await getAudioContext();
     if (adhanBufferRef.current) {
       const source = ctx.createBufferSource();
       source.buffer = adhanBufferRef.current;
@@ -250,27 +292,28 @@ export default function App() {
     stopCurrentAudio();
     if (isPreview) setIsPreviewing('suhoor');
     
-    const voiceName = 'Fenrir';
-    const voiceData = await generateSuhoorVoice(t.suhoorVoiceMsg, voiceName);
-    if (voiceData) {
-      const ctx = getAudioContext();
-      const binary = atob(voiceData);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-      const dataInt16 = new Int16Array(bytes.buffer);
-      const buffer = ctx.createBuffer(1, dataInt16.length, 24000);
-      const channelData = buffer.getChannelData(0);
-      for (let i = 0; i < dataInt16.length; i++) channelData[i] = dataInt16[i] / 32768.0;
-      const source = ctx.createBufferSource();
-      source.buffer = buffer;
-      const gainNode = ctx.createGain();
-      gainNode.gain.value = settings.voiceVolume;
-      source.connect(gainNode);
-      gainNode.connect(ctx.destination);
-      source.onended = () => setIsPreviewing(null);
-      source.start();
-      currentSourceRef.current = source;
-    } else {
+    try {
+      const voiceName = 'Fenrir';
+      const voiceData = await generateSuhoorVoice(t.suhoorVoiceMsg, voiceName);
+      
+      if (voiceData) {
+        const ctx = await getAudioContext();
+        const buffer = await decodeRawPCM(voiceData, ctx);
+        
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        const gainNode = ctx.createGain();
+        gainNode.gain.value = settings.voiceVolume;
+        source.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        source.onended = () => setIsPreviewing(null);
+        source.start();
+        currentSourceRef.current = source;
+      } else {
+        setIsPreviewing(null);
+      }
+    } catch (error) {
+      console.error("Voice Playback Error:", error);
       setIsPreviewing(null);
     }
   };
@@ -288,11 +331,12 @@ export default function App() {
     return `${monthName} ${day}`;
   };
 
-  const getAshraLabel = () => {
-    const day = currentData.ramadanDay;
-    if (day <= 10) return t.ashra1;
-    if (day <= 20) return t.ashra2;
-    return t.ashra3;
+  const isAfterIftarToday = () => {
+    if (!isTodayDate(currentData.date)) return false;
+    const [h, m] = currentData.iftar.split(':').map(Number);
+    const iftarTime = new Date();
+    iftarTime.setHours(h, m, 0, 0);
+    return currentTime.getTime() > iftarTime.getTime();
   };
 
   const getCountdown = (timeStr: string, dateStr: string) => {
@@ -307,6 +351,26 @@ export default function App() {
     const seconds = Math.floor((diff % 60000) / 1000);
     const pad = (n: number) => n.toString().padStart(2, '0');
     return `${formatValue(pad(hours))}:${formatValue(pad(minutes))}:${formatValue(pad(seconds))}`;
+  };
+
+  const getSuhoorCountdown = () => {
+    const afterIftar = isAfterIftarToday();
+    const isToday = isTodayDate(currentData.date);
+    if (isToday && afterIftar) {
+      const tomorrowIndex = currentDayIndex + 1;
+      if (tomorrowIndex < CALENDAR_DATA.length) {
+        const tomorrow = CALENDAR_DATA[tomorrowIndex];
+        return getCountdown(tomorrow.suhoor, tomorrow.date);
+      }
+    }
+    return getCountdown(currentData.suhoor, currentData.date);
+  };
+
+  const getAshraLabel = () => {
+    const day = currentData.ramadanDay;
+    if (day <= 10) return t.ashra1;
+    if (day <= 20) return t.ashra2;
+    return t.ashra3;
   };
 
   const handleShare = async () => {
@@ -359,7 +423,7 @@ export default function App() {
             <h1 className={`text-base md:text-2xl font-black tracking-tight leading-tight ${isBengali ? 'font-bengali-bold text-amber-500' : 'text-white'}`}>{t.title}</h1>
             <div className="flex items-center gap-2">
               <MapPin className="w-3 h-3 text-slate-500" />
-              <p className="text-[8px] md:text-[11px] text-slate-400 font-bold uppercase tracking-[0.2em] opacity-80 whitespace-nowrap">{t.subTitle}</p>
+              <p className="text-[6.5px] md:text-[9px] text-slate-400 font-bold uppercase tracking-[0.2em] opacity-80 whitespace-nowrap">{t.subTitle}</p>
             </div>
           </div>
         </div>
@@ -448,14 +512,18 @@ export default function App() {
                   <span className={`text-[10px] md:text-2xl font-black uppercase tracking-widest text-emerald-100 mb-0.5 md:mb-4`}>{t.suhoor}</span>
                   <div className="flex flex-col items-center">
                     <div className="flex items-baseline gap-1">
-                      <span className="text-3xl md:text-[10rem] font-black text-white drop-shadow-[0_0_20px_rgba(52,211,153,0.4)] leading-none">{getTimeParts(currentData.suhoor).time}</span>
+                      <span className="text-3xl md:text-[10rem] font-black text-white drop-shadow-[0_0_20px_rgba(52,211,153,0.4)] leading-none">
+                        {isAfterIftarToday() ? getTimeParts(CALENDAR_DATA[currentDayIndex + 1]?.suhoor || currentData.suhoor).time : getTimeParts(currentData.suhoor).time}
+                      </span>
                     </div>
-                    <span className="text-[9px] md:text-xl font-bold text-emerald-400/80 mt-1.5 md:mt-5 px-2.5 py-0.5 md:py-1 bg-emerald-500/10 rounded-md border border-emerald-500/10">{t.periods.dawn}</span>
+                    <span className="text-[9px] md:text-xl font-bold text-emerald-400/80 mt-1.5 md:mt-5 px-2.5 py-0.5 md:py-1 bg-emerald-500/10 rounded-md border border-emerald-500/10">
+                      {isAfterIftarToday() ? t.today : t.periods.dawn}
+                    </span>
                   </div>
                   <div className="mt-3 md:mt-10 flex items-center justify-center min-h-[1rem]">
-                    {getCountdown(currentData.suhoor, currentData.date) ? (
-                      <span className="text-[7px] md:text-base font-bold text-emerald-200 bg-emerald-500/10 px-3 md:px-6 py-1 md:py-2.5 rounded-full border border-emerald-500/20">{t.suhoorRemaining}: {getCountdown(currentData.suhoor, currentData.date)}</span>
-                    ) : (isTodayDate(currentData.date) && <span className="text-[7px] md:text-base font-bold text-rose-300 bg-rose-500/10 px-3 md:px-6 py-1 md:py-2.5 rounded-full">{t.suhoorEnded}</span>)}
+                    {getSuhoorCountdown() ? (
+                      <span className="text-[7px] md:text-base font-bold text-emerald-200 bg-emerald-500/10 px-3 md:px-6 py-1 md:py-2.5 rounded-full border border-emerald-500/20">{t.suhoorRemaining}: {getSuhoorCountdown()}</span>
+                    ) : (isTodayDate(currentData.date) && !isAfterIftarToday() && <span className="text-[7px] md:text-base font-bold text-rose-300 bg-rose-500/10 px-3 md:px-6 py-1 md:py-2.5 rounded-full">{t.suhoorEnded}</span>)}
                   </div>
                 </div>
 

@@ -1,3 +1,4 @@
+
 import { CalendarDay, Language } from './types';
 
 export const CALENDAR_DATA: CalendarDay[] = [
@@ -79,7 +80,7 @@ export const TRANSLATIONS: Record<Language, any> = {
   },
   [Language.BN]: {
     title: "মসজিদ হযরত হামজা (রা:) - সময়সূচী",
-    subTitle: "পোর্তো মুসলিম কালচারাল সেন্টার",
+    subTitle: "পর্তো মুসলিম কালচারাল সেন্টার",
     suhoor: "সেহরি",
     iftar: "ইফতার",
     ramadanMonth: "রমজান",
