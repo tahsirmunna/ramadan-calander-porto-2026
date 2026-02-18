@@ -43,18 +43,24 @@ const Lantern = ({ className = "", style }: { className?: string; style?: React.
   </svg>
 );
 
+const DEFAULT_SETTINGS: AppSettings = {
+  language: Language.BN,
+  iftarAlarmEnabled: true,
+  suhoorAlarmEnabled: true,
+  voiceVolume: 0.8
+};
+
 export default function App() {
   const [settings, setSettings] = useState<AppSettings>(() => {
-    const saved = localStorage.getItem('ramadan_settings');
-    if (saved) {
-        return JSON.parse(saved);
+    try {
+      const saved = localStorage.getItem('ramadan_settings');
+      if (saved) {
+          return { ...DEFAULT_SETTINGS, ...JSON.parse(saved) };
+      }
+    } catch (e) {
+      console.error("Failed to parse settings", e);
     }
-    return {
-      language: Language.BN,
-      iftarAlarmEnabled: true,
-      suhoorAlarmEnabled: true,
-      voiceVolume: 0.8
-    };
+    return DEFAULT_SETTINGS;
   });
 
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
@@ -65,7 +71,7 @@ export default function App() {
   const [showFullCalendar, setShowFullCalendar] = useState(false);
   const [showCopied, setShowCopied] = useState(false);
 
-  const t = TRANSLATIONS[settings.language];
+  const t = TRANSLATIONS[settings.language] || TRANSLATIONS[Language.EN];
   const isBengali = settings.language === Language.BN;
   
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -107,8 +113,8 @@ export default function App() {
 
     if (typeof timeInput === 'string') {
       const parts = timeInput.split(':');
-      hour = parseInt(parts[0]);
-      minute = parseInt(parts[1]);
+      hour = parseInt(parts[0]) || 0;
+      minute = parseInt(parts[1]) || 0;
     } else {
       hour = timeInput.getHours();
       minute = timeInput.getMinutes();
@@ -192,6 +198,7 @@ export default function App() {
 
   const checkAlarms = (now: Date) => {
     const todayData = CALENDAR_DATA[currentDayIndex];
+    if (!todayData) return;
     const timeStr = now.toTimeString().slice(0, 5);
     if (settings.iftarAlarmEnabled && timeStr === todayData.iftar && now.getSeconds() === 0 && isTodayDate(todayData.date)) playAdhan();
     if (settings.suhoorAlarmEnabled && timeStr === todayData.suhoor && now.getSeconds() === 0 && isTodayDate(todayData.date)) playSuhoorWarning();
@@ -268,10 +275,11 @@ export default function App() {
     }
   };
 
-  const currentData = CALENDAR_DATA[currentDayIndex];
+  const currentData = CALENDAR_DATA[currentDayIndex] || CALENDAR_DATA[0];
   const daysRemaining = Math.max(0, 30 - currentData.ramadanDay);
 
   const getLocalizedDate = (dateStr: string) => {
+    if (!dateStr) return '';
     const [year, month, day] = dateStr.split('-');
     const mIdx = parseInt(month) - 1;
     const monthName = t.months[mIdx];
@@ -288,6 +296,7 @@ export default function App() {
   };
 
   const getCountdown = (timeStr: string, dateStr: string) => {
+    if (!timeStr || !dateStr) return null;
     const [h, m] = timeStr.split(':').map(Number);
     const targetDate = new Date(dateStr);
     targetDate.setHours(h, m, 0, 0);
