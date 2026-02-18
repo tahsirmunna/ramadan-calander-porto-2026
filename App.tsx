@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Moon, 
@@ -10,15 +11,10 @@ import {
   Volume2,
   Calendar,
   Check,
-  Volume1,
-  User,
   Play,
   VolumeX,
   Sparkles,
-  Star,
-  Clock,
   MapPin,
-  Heart,
   List,
   LayoutGrid,
   Linkedin,
@@ -26,7 +22,6 @@ import {
 } from 'lucide-react';
 import { Language, AppSettings } from './types';
 import { CALENDAR_DATA, TRANSLATIONS } from './constants';
-import { generateSuhoorVoice } from './services/geminiService';
 
 const ADHAN_URL = 'https://www.islamcan.com/audio/adhan/azan1.mp3';
 const ADHAN_FALLBACK_URL = 'https://ia800203.us.archive.org/20/items/Adhan_201509/Adhan.mp3';
@@ -50,41 +45,6 @@ const DEFAULT_SETTINGS: AppSettings = {
   voiceVolume: 0.8
 };
 
-/** 
- * Decodes raw PCM data from Gemini TTS into an AudioBuffer.
- * Handles byte alignment and normalization.
- */
-async function decodeRawPCM(
-  base64Data: string,
-  ctx: AudioContext,
-  sampleRate: number = 24000,
-  numChannels: number = 1
-): Promise<AudioBuffer> {
-  const binaryString = atob(base64Data);
-  const len = binaryString.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-
-  const numSamples = Math.floor(bytes.length / 2);
-  const dataInt16 = new Int16Array(numSamples);
-  const view = new DataView(bytes.buffer);
-
-  for (let i = 0; i < numSamples; i++) {
-    dataInt16[i] = view.getInt16(i * 2, true);
-  }
-
-  const buffer = ctx.createBuffer(numChannels, numSamples, sampleRate);
-  for (let channel = 0; channel < numChannels; channel++) {
-    const channelData = buffer.getChannelData(channel);
-    for (let i = 0; i < numSamples; i++) {
-      channelData[i] = dataInt16[i] / 32768.0;
-    }
-  }
-  return buffer;
-}
-
 export default function App() {
   const [settings, setSettings] = useState<AppSettings>(() => {
     try {
@@ -102,7 +62,7 @@ export default function App() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isPreviewing, setIsPreviewing] = useState<string | null>(null);
+  const [isPreviewing, setIsPreviewing] = useState<boolean>(false);
   const [showFullCalendar, setShowFullCalendar] = useState(false);
   const [showCopied, setShowCopied] = useState(false);
 
@@ -238,11 +198,13 @@ export default function App() {
     const todayData = CALENDAR_DATA[currentDayIndex];
     if (!todayData) return;
     const timeStr = now.toTimeString().slice(0, 5);
+    
     if (settings.iftarAlarmEnabled && timeStr === todayData.iftar && now.getSeconds() === 0 && isTodayDate(todayData.date)) {
       playAdhan();
     }
+    
     if (settings.suhoorAlarmEnabled && timeStr === todayData.suhoor && now.getSeconds() === 0 && isTodayDate(todayData.date)) {
-      playSuhoorWarning();
+      playAdhan();
     }
   };
 
@@ -255,13 +217,17 @@ export default function App() {
       adhanAudioFallbackRef.current.pause();
       adhanAudioFallbackRef.current.currentTime = 0;
     }
-    setIsPreviewing(null);
+    setIsPreviewing(false);
   };
 
   const playAdhan = async (isPreview = false) => {
-    if (isPreview && isPreviewing === 'adhan') { stopCurrentAudio(); return; }
+    if (isPreview && isPreviewing) { 
+      stopCurrentAudio(); 
+      return; 
+    }
+    
     stopCurrentAudio();
-    if (isPreview) setIsPreviewing('adhan');
+    if (isPreview) setIsPreviewing(true);
     
     const ctx = await getAudioContext();
     if (adhanBufferRef.current) {
@@ -271,50 +237,19 @@ export default function App() {
       gainNode.gain.value = settings.voiceVolume;
       source.connect(gainNode);
       gainNode.connect(ctx.destination);
-      source.onended = () => setIsPreviewing(null);
+      source.onended = () => setIsPreviewing(false);
       source.start();
       currentSourceRef.current = source;
     } else {
       const audio = adhanAudioFallbackRef.current || new Audio(ADHAN_URL);
       audio.volume = settings.voiceVolume;
-      audio.onended = () => setIsPreviewing(null);
+      audio.onended = () => setIsPreviewing(false);
       try {
         await audio.play();
       } catch (err) {
         audio.src = ADHAN_FALLBACK_URL;
-        try { await audio.play(); } catch(e) { setIsPreviewing(null); }
+        try { await audio.play(); } catch(e) { setIsPreviewing(false); }
       }
-    }
-  };
-
-  const playSuhoorWarning = async (isPreview = false) => {
-    if (isPreview && isPreviewing === 'suhoor') { stopCurrentAudio(); return; }
-    stopCurrentAudio();
-    if (isPreview) setIsPreviewing('suhoor');
-    
-    try {
-      const voiceName = 'Fenrir';
-      const voiceData = await generateSuhoorVoice(t.suhoorVoiceMsg, voiceName);
-      
-      if (voiceData) {
-        const ctx = await getAudioContext();
-        const buffer = await decodeRawPCM(voiceData, ctx);
-        
-        const source = ctx.createBufferSource();
-        source.buffer = buffer;
-        const gainNode = ctx.createGain();
-        gainNode.gain.value = settings.voiceVolume;
-        source.connect(gainNode);
-        gainNode.connect(ctx.destination);
-        source.onended = () => setIsPreviewing(null);
-        source.start();
-        currentSourceRef.current = source;
-      } else {
-        setIsPreviewing(null);
-      }
-    } catch (error) {
-      console.error("Voice Playback Error:", error);
-      setIsPreviewing(null);
     }
   };
 
@@ -637,7 +572,6 @@ export default function App() {
               <div className="flex items-center justify-between p-4 bg-slate-950/40 rounded-3xl border border-slate-800/50">
                 <div className="flex items-center gap-4">
                   <div className="bg-orange-500/10 p-2 rounded-xl"><Moon className="w-5 h-5 text-orange-500" /></div>
-                  <span className="font-bold text-slate-200">{t.iftarAlarm}</span>
                 </div>
                 <button 
                   onClick={() => setSettings(s => ({...s, iftarAlarmEnabled: !s.iftarAlarmEnabled}))}
@@ -650,7 +584,6 @@ export default function App() {
               <div className="flex items-center justify-between p-4 bg-slate-950/40 rounded-3xl border border-slate-800/50">
                 <div className="flex items-center gap-4">
                   <div className="bg-emerald-500/10 p-2 rounded-xl"><Sun className="w-5 h-5 text-emerald-400" /></div>
-                  <span className="font-bold text-slate-200">{t.suhoorAlarm}</span>
                 </div>
                 <button 
                   onClick={() => setSettings(s => ({...s, suhoorAlarmEnabled: !s.suhoorAlarmEnabled}))}
@@ -671,20 +604,12 @@ export default function App() {
               </div>
 
               <div className="grid grid-cols-1 gap-4">
-                 <button 
-                  onClick={() => playSuhoorWarning(true)}
-                  className={`w-full p-5 rounded-3xl font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-4 ${isPreviewing === 'suhoor' ? 'bg-emerald-500 text-white animate-pulse' : 'bg-slate-800 text-slate-200 hover:bg-slate-700'}`}
-                >
-                  {isPreviewing === 'suhoor' ? <VolumeX className="w-5 h-5" /> : <Volume1 className="w-5 h-5" />}
-                  {t.previewSuhoor}
-                </button>
-
                 <button 
                   onClick={() => playAdhan(true)}
-                  className={`w-full p-5 rounded-3xl font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-4 ${isPreviewing === 'adhan' ? 'bg-orange-500 text-white animate-pulse' : 'bg-slate-800 text-slate-200 hover:bg-slate-700'}`}
+                  className={`w-full p-6 rounded-[2rem] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-4 ${isPreviewing ? 'bg-amber-500 text-slate-950 scale-[0.98]' : 'bg-slate-800 text-slate-200 hover:bg-slate-700 shadow-xl border border-slate-700/50'}`}
                 >
-                  {isPreviewing === 'adhan' ? <VolumeX className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-                  {t.iftarAlarm}
+                  {isPreviewing ? <VolumeX className="w-6 h-6" /> : <Play className="w-6 h-6 text-amber-500" />}
+                  <span className={isBengali ? 'text-lg font-bengali-bold' : ''}>{t.listenAdhan}</span>
                 </button>
               </div>
             </div>
