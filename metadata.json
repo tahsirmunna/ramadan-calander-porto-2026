@@ -1,0 +1,7 @@
+{
+  "name": "Ramadan Calandar Porto- 2026 ",
+  "description": "A comprehensive Ramadan companion app for the Porto community, featuring Suhoor/Iftar timings, AI-powered Hadith, alarms with Adhan, and multi-language support (English, Bengali, Portuguese).",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
