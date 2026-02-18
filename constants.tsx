@@ -1,4 +1,3 @@
-
 import { CalendarDay, Language } from './types';
 
 export const CALENDAR_DATA: CalendarDay[] = [
@@ -36,7 +35,7 @@ export const CALENDAR_DATA: CalendarDay[] = [
 
 export const TRANSLATIONS: Record<Language, any> = {
   [Language.EN]: {
-    title: "Mesquita Hazrat Hamza (R.A) - Schedule",
+    title: "Ramadan Porto Calendar 2026",
     subTitle: "Porto Muslim Cultural Center",
     suhoor: "Suhoor",
     iftar: "Iftar",
@@ -64,7 +63,7 @@ export const TRANSLATIONS: Record<Language, any> = {
     iftarEnded: "Iftar ended",
     listenAdhan: "Listen Adhan",
     share: "Share",
-    shareMessage: "Date: {date}\n{day}\nSuhoor: {suhoor}\nIftar: {iftar}\nMesquita Hazrat Hamza (R.A)",
+    shareMessage: "Date: {date}\n{day}\nSuhoor: {suhoor}\nIftar: {iftar}\nRamadan Porto Calendar 2026",
     copied: "Copied!",
     hadith: "Narrated Abu Huraira: The Prophet said, \"(Allah said), 'Every good deed of Adam's son is for him except fasting; it is for Me. and I shall reward (the fasting person) for it.' Verily, the smell of the mouth of a fasting person is better to Allah than the smell of musk.\" (Sahih al-Bukhari 5927)",
     periods: {
