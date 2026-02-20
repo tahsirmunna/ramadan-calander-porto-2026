@@ -758,6 +758,11 @@ export default function App() {
 
               <div className="bg-slate-950/40 rounded-3xl border border-slate-800/50 p-6 space-y-4">
                 <div className="space-y-1">
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">{t.beneficiary}</p>
+                  <p className="text-lg md:text-xl font-bold text-white">CENTRO CULTURAL MUÇULMANOS DO PORTO - CCMP</p>
+                </div>
+
+                <div className="space-y-1">
                   <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">{t.bankName}</p>
                   <p className="text-lg md:text-xl font-mono text-white">NOVO BANCO</p>
                 </div>
