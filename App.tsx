@@ -19,13 +19,11 @@ import {
   LayoutGrid,
   Linkedin,
   Share2,
-  Send,
-  Heart,
   HandHeart,
   Copy
 } from 'lucide-react';
-import { Language, AppSettings, GreetingCard } from './types';
-import { CALENDAR_DATA, TRANSLATIONS, GREETING_CARDS } from './constants';
+import { Language, AppSettings } from './types';
+import { CALENDAR_DATA, TRANSLATIONS } from './constants';
 
 const ADHAN_URL = 'https://ia800203.us.archive.org/20/items/Adhan_201509/Adhan.mp3';
 const ADHAN_FALLBACK_URL = 'https://www.islamcan.com/audio/adhan/azan1.mp3';
@@ -68,13 +66,9 @@ export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isPreviewing, setIsPreviewing] = useState<boolean>(false);
   const [showFullCalendar, setShowFullCalendar] = useState(false);
-  const [showGreetings, setShowGreetings] = useState(false);
   const [showDonate, setShowDonate] = useState(false);
   const [showCopied, setShowCopied] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
-  const [customizingCard, setCustomizingCard] = useState<GreetingCard | null>(null);
-  const [customMessage, setCustomMessage] = useState('');
-  const [customColor, setCustomColor] = useState('');
 
   const t = TRANSLATIONS[settings.language] || TRANSLATIONS[Language.EN];
   const isBengali = settings.language === Language.BN;
@@ -263,36 +257,6 @@ export default function App() {
     }
   };
 
-  const handleShareGreeting = async (card: GreetingCard, messageOverride?: string) => {
-    const message = messageOverride || card.messages[settings.language] || card.messages[Language.EN];
-    
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'Ramadan Greeting',
-          text: message,
-          url: window.location.href,
-        });
-      } catch (err) {
-        console.error("Share failed", err);
-      }
-    } else {
-      try {
-        await navigator.clipboard.writeText(`${message}\n${window.location.href}`);
-        setShowCopied(true);
-        setTimeout(() => setShowCopied(false), 2000);
-      } catch (err) {
-        console.error("Clipboard copy failed", err);
-      }
-    }
-  };
-
-  const openCustomization = (card: GreetingCard) => {
-    setCustomizingCard(card);
-    setCustomMessage(card.messages[settings.language] || card.messages[Language.EN]);
-    setCustomColor(card.color);
-  };
-
   const handleCopy = async (text: string, field: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -414,21 +378,14 @@ export default function App() {
         </div>
         
         <div className="flex items-center gap-2 bg-slate-950/40 p-1.5 rounded-2xl border border-slate-800/50 backdrop-blur-md shadow-2xl">
-          <button onClick={() => { setShowDonate(true); setShowGreetings(false); setShowFullCalendar(false); }} className={`p-3 rounded-xl transition-all flex items-center gap-2 hover:bg-slate-800/60 text-slate-400 hover:text-amber-500`}>
+          <button onClick={() => { setShowDonate(true); setShowFullCalendar(false); }} className={`p-3 rounded-xl transition-all flex items-center gap-2 hover:bg-slate-800/60 text-slate-400 hover:text-amber-500`}>
             <HandHeart className="w-5 h-5" />
             <span className="hidden md:inline text-[10px] font-black uppercase tracking-widest">{t.donate}</span>
           </button>
 
           <div className="w-px h-6 bg-slate-800/50 mx-1"></div>
 
-          <button onClick={() => { setShowGreetings(!showGreetings); setShowFullCalendar(false); }} className={`p-3 rounded-xl transition-all flex items-center gap-2 ${showGreetings ? 'bg-rose-500/20 text-rose-500' : 'hover:bg-slate-800/60 text-slate-400 hover:text-amber-500'}`}>
-            <Heart className={`w-5 h-5 ${showGreetings ? 'fill-rose-500' : ''}`} />
-            <span className="hidden md:inline text-[10px] font-black uppercase tracking-widest">{t.greetings}</span>
-          </button>
-
-          <div className="w-px h-6 bg-slate-800/50 mx-1"></div>
-
-          <button onClick={() => { setShowFullCalendar(!showFullCalendar); setShowGreetings(false); }} className={`p-3 rounded-xl transition-all flex items-center gap-2 ${showFullCalendar ? 'bg-amber-500/20 text-amber-500' : 'hover:bg-slate-800/60 text-slate-400 hover:text-amber-500'}`}>
+          <button onClick={() => { setShowFullCalendar(!showFullCalendar); }} className={`p-3 rounded-xl transition-all flex items-center gap-2 ${showFullCalendar ? 'bg-amber-500/20 text-amber-500' : 'hover:bg-slate-800/60 text-slate-400 hover:text-amber-500'}`}>
             {showFullCalendar ? <LayoutGrid className="w-5 h-5" /> : <List className="w-5 h-5" />}
             <span className="hidden md:inline text-[10px] font-black uppercase tracking-widest">{t.fullCalendar}</span>
           </button>
@@ -465,49 +422,7 @@ export default function App() {
       </header>
 
       <main className="w-full max-w-4xl z-10 flex flex-col gap-4 md:gap-8">
-        {showGreetings ? (
-          <div className="glass-panel rounded-[2rem] md:rounded-[3.5rem] p-6 md:p-10 relative overflow-hidden animate-in fade-in slide-in-from-bottom-4">
-            <div className="flex justify-between items-center mb-8">
-              <h2 className="text-2xl md:text-4xl font-black text-amber-500">{t.greetings}</h2>
-              <button onClick={() => setShowGreetings(false)} className="p-2 bg-slate-800 rounded-xl hover:bg-slate-700 transition-colors">
-                <X className="w-6 h-6 text-slate-400" />
-              </button>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {GREETING_CARDS.map((card) => (
-                <div key={card.id} className="bg-slate-900/60 border border-slate-700/50 rounded-3xl overflow-hidden group/card hover:border-amber-500/30 transition-all flex flex-col">
-                  <div className="relative h-40 bg-slate-950/50 flex items-center justify-center overflow-hidden group-hover/card:bg-slate-950/80 transition-colors">
-                    <div className={`p-6 rounded-full bg-slate-900/80 border border-slate-800 shadow-xl group-hover/card:scale-110 transition-transform duration-500 ${card.color.replace('text-', 'bg-').replace('400', '500/10').replace('500', '500/10')}`}>
-                      <card.icon className={`w-12 h-12 ${card.color}`} />
-                    </div>
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent opacity-60"></div>
-                  </div>
-                  <div className="p-6 flex-1 flex flex-col">
-                    <p className={`text-slate-200 text-sm md:text-base leading-relaxed mb-6 italic flex-1 ${isBengali ? 'font-bengali' : ''}`}>
-                      "{card.messages[settings.language] || card.messages[Language.EN]}"
-                    </p>
-                    <div className="flex gap-2">
-                      <button 
-                        onClick={() => openCustomization(card)}
-                        className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 py-3 rounded-2xl font-bold uppercase tracking-wider text-xs transition-all"
-                      >
-                        {t.customize}
-                      </button>
-                      <button 
-                        onClick={() => handleShareGreeting(card)}
-                        className="flex-1 bg-amber-500/10 hover:bg-amber-500 text-amber-500 hover:text-slate-950 border border-amber-500/20 py-3 rounded-2xl font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
-                      >
-                        <Send className="w-4 h-4" />
-                        <span className={isBengali ? 'font-bengali-bold' : ''}>{t.send}</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : !showFullCalendar ? (
+        {!showFullCalendar ? (
           <>
             <div className="glass-panel rounded-[2rem] md:rounded-[3.5rem] p-4 md:p-14 relative overflow-hidden group">
               <div className="absolute -top-10 -right-10 p-12 opacity-5 rotate-12 group-hover:opacity-10 transition-opacity"><Sparkles className="w-40 h-40 text-amber-500" /></div>
@@ -806,83 +721,6 @@ export default function App() {
                     </button>
                   </div>
                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {customizingCard && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-xl" onClick={() => setCustomizingCard(null)}></div>
-          <div className="bg-slate-900 border border-slate-700/50 w-full max-w-lg rounded-[2.5rem] p-8 shadow-2xl relative z-130 animate-in fade-in zoom-in duration-300">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-black text-white">{t.customize}</h2>
-              <button onClick={() => setCustomizingCard(null)} className="p-2 hover:bg-slate-800 rounded-full transition-colors"><X className="w-6 h-6 text-slate-400" /></button>
-            </div>
-
-            <div className="space-y-6">
-              {/* Preview */}
-              <div className="bg-slate-950/50 border border-slate-800 rounded-3xl overflow-hidden relative group">
-                <div className="relative h-32 flex items-center justify-center overflow-hidden">
-                  <div className={`p-4 rounded-full bg-slate-900/80 border border-slate-800 shadow-xl ${customColor.replace('text-', 'bg-').replace('400', '500/10').replace('500', '500/10')}`}>
-                    <customizingCard.icon className={`w-10 h-10 ${customColor}`} />
-                  </div>
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent opacity-60"></div>
-                </div>
-                <div className="p-6 pt-0 text-center">
-                  <p className={`text-slate-200 text-sm leading-relaxed italic ${isBengali ? 'font-bengali' : ''}`}>
-                    "{customMessage}"
-                  </p>
-                </div>
-              </div>
-
-              {/* Message Input */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{t.writeMessage}</label>
-                <textarea
-                  value={customMessage}
-                  onChange={(e) => setCustomMessage(e.target.value)}
-                  className={`w-full bg-slate-950/50 border border-slate-800 rounded-2xl p-4 text-slate-200 focus:outline-none focus:border-amber-500/50 transition-colors min-h-[100px] ${isBengali ? 'font-bengali' : ''}`}
-                  placeholder={t.writeMessage}
-                />
-              </div>
-
-              {/* Color Selection */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{t.selectColor}</label>
-                <div className="flex flex-wrap gap-3">
-                  {['text-amber-500', 'text-rose-500', 'text-emerald-500', 'text-blue-400', 'text-purple-400', 'text-orange-500', 'text-pink-400', 'text-indigo-400'].map((color) => (
-                    <button
-                      key={color}
-                      onClick={() => setCustomColor(color)}
-                      className={`w-8 h-8 rounded-full border-2 transition-all ${customColor === color ? 'border-white scale-110' : 'border-transparent hover:scale-105'} ${color.replace('text-', 'bg-')}`}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="grid grid-cols-2 gap-4 pt-2">
-                <button 
-                  onClick={() => {
-                    setCustomMessage(customizingCard.messages[settings.language] || customizingCard.messages[Language.EN]);
-                    setCustomColor(customizingCard.color);
-                  }}
-                  className="bg-slate-800 hover:bg-slate-700 text-slate-400 py-3 rounded-2xl font-bold uppercase tracking-widest text-xs transition-all"
-                >
-                  {t.reset}
-                </button>
-                <button 
-                  onClick={() => {
-                    handleShareGreeting({ ...customizingCard, color: customColor }, customMessage);
-                    setCustomizingCard(null);
-                  }}
-                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 py-3 rounded-2xl font-black uppercase tracking-widest text-xs transition-all flex items-center justify-center gap-2"
-                >
-                  <Send className="w-4 h-4" />
-                  <span>{t.send}</span>
-                </button>
               </div>
             </div>
           </div>

@@ -1,109 +1,6 @@
 
-import { CalendarDay, Language, GreetingCard } from './types';
-import { Moon, Star, Heart, Sun, CloudMoon, Sparkles, Flower, Coffee, Gift, BookOpen, HandHeart, PartyPopper } from 'lucide-react';
-
-export const GREETING_CARDS: GreetingCard[] = [
-  {
-    id: '1',
-    icon: Moon,
-    color: 'text-amber-500',
-    messages: {
-      [Language.EN]: "Wishing you a blessed Ramadan filled with peace, joy, and prosperity. Ramadan Mubarak!",
-      [Language.BN]: "আপনার এবং আপনার পরিবারের জন্য রহমত, বরকত ও মাগফিরাতের বার্তা নিয়ে আসুক পবিত্র রমজান। রমজান মোবারক!",
-      [Language.PT]: "Desejo-lhe um Ramadão abençoado, cheio de paz, alegria e prosperidade. Ramadan Mubarak!"
-    }
-  },
-  {
-    id: '2',
-    icon: Heart,
-    color: 'text-rose-500',
-    messages: {
-      [Language.EN]: "May this holy month bring you closer to Allah and fill your heart with gratitude. Happy Ramadan!",
-      [Language.BN]: "পবিত্র এই মাসটি আপনাকে আল্লাহর আরও নিকটবর্তী করুক এবং আপনার হৃদয়কে কৃতজ্ঞতায় ভরিয়ে দিক। শুভ রমজান!",
-      [Language.PT]: "Que este mês sagrado o aproxime de Allah e encha o seu coração de gratidão. Feliz Ramadão!"
-    }
-  },
-  {
-    id: '3',
-    icon: Star,
-    color: 'text-yellow-400',
-    messages: {
-      [Language.EN]: "Ramadan Kareem! May your prayers be answered and your fasts be accepted.",
-      [Language.BN]: "রমজান কারীম! আপনার সকল দোয়া কবুল হোক এবং আপনার রোজাগুলো আল্লাহর দরবারে গৃহীত হোক।",
-      [Language.PT]: "Ramadan Kareem! Que as suas orações sejam respondidas e os seus jejuns aceites."
-    }
-  },
-  {
-    id: '4',
-    icon: Sparkles,
-    color: 'text-purple-400',
-    messages: {
-      [Language.EN]: "May the light of Ramadan shine upon you and your family. Have a peaceful month.",
-      [Language.BN]: "রমজানের নূর আপনার এবং আপনার পরিবারের উপর বর্ষিত হোক। একটি শান্তিময় মাস কাটুক।",
-      [Language.PT]: "Que a luz do Ramadão brilhe sobre si e a sua família. Tenha um mês pacífico."
-    }
-  },
-  {
-    id: '5',
-    icon: BookOpen,
-    color: 'text-emerald-500',
-    messages: {
-      [Language.EN]: "May Allah guide you to the right path and shower His blessings upon you.",
-      [Language.BN]: "আল্লাহ আপনাকে সঠিক পথ দেখান এবং আপনার উপর তাঁর রহমত বর্ষণ করুন।",
-      [Language.PT]: "Que Allah o guie para o caminho certo e derrame as Suas bênçãos sobre si."
-    }
-  },
-  {
-    id: '6',
-    icon: CloudMoon,
-    color: 'text-blue-400',
-    messages: {
-      [Language.EN]: "Sending you warm wishes on this holy month. Remember me in your prayers.",
-      [Language.BN]: "এই পবিত্র মাসে আপনাকে উষ্ণ শুভেচ্ছা জানাচ্ছি। আপনার দোয়ায় আমাকে মনে রাখবেন।",
-      [Language.PT]: "Envio-lhe votos calorosos neste mês sagrado. Lembre-se de mim nas suas orações."
-    }
-  },
-  {
-    id: '7',
-    icon: HandHeart,
-    color: 'text-orange-500',
-    messages: {
-      [Language.EN]: "May your charity and good deeds be multiplied in this blessed month.",
-      [Language.BN]: "এই বরকতময় মাসে আপনার দান এবং নেক আমল বহুগুণে বৃদ্ধি পাক।",
-      [Language.PT]: "Que a sua caridade e boas ações sejam multiplicadas neste mês abençoado."
-    }
-  },
-  {
-    id: '8',
-    icon: Flower,
-    color: 'text-pink-400',
-    messages: {
-      [Language.EN]: "May the spirit of Ramadan stay in our hearts and light up our souls from within.",
-      [Language.BN]: "রমজানের চেতনা আমাদের হৃদয়ে থাকুক এবং আমাদের আত্মাকে ভেতর থেকে আলোকিত করুক।",
-      [Language.PT]: "Que o espírito do Ramadão permaneça nos nossos corações e ilumine as nossas almas por dentro."
-    }
-  },
-  {
-    id: '9',
-    icon: Sun,
-    color: 'text-amber-400',
-    messages: {
-      [Language.EN]: "Wishing you a Ramadan full of celebration and spiritual growth.",
-      [Language.BN]: "আপনার রমজান হোক উৎসবমুখর এবং আধ্যাত্মিক উন্নতিতে পরিপূর্ণ।",
-      [Language.PT]: "Desejo-lhe um Ramadão cheio de celebração e crescimento espiritual."
-    }
-  },
-  {
-    id: '10',
-    icon: PartyPopper,
-    color: 'text-indigo-400',
-    messages: {
-      [Language.EN]: "May Allah bless you with happiness and grace your home with warmth and peace.",
-      [Language.BN]: "আল্লাহ আপনাকে সুখ দান করুন এবং আপনার ঘরকে উষ্ণতা ও শান্তিতে ভরিয়ে দিন।",
-      [Language.PT]: "Que Allah o abençoe com felicidade e agracie o seu lar com calor e paz."
-    }
-  }
-];
+import { CalendarDay, Language } from './types';
+import { Moon, Sun } from 'lucide-react';
 
 export const CALENDAR_DATA: CalendarDay[] = [
   { ramadanDay: 1, date: '2026-02-18', weekday: 'Wednesday', suhoor: '05:53', iftar: '18:16' },
@@ -168,8 +65,6 @@ export const TRANSLATIONS: Record<Language, any> = {
     iftarEnded: "Iftar ended",
     listenAdhan: "Listen Adhan",
     share: "Share",
-    greetings: "Greeting Cards",
-    send: "Send Message",
     shareMessage: "Date: {date}\n{day}\nSuhoor: {suhoor}\nIftar: {iftar}\nMesquita Hazrat Hamza (R.A)",
     donate: "Donate",
     donateTitle: "Donate for Ramadan",
@@ -181,11 +76,6 @@ export const TRANSLATIONS: Record<Language, any> = {
     swift: "SWIFT",
     copy: "Copy",
     copied: "Copied!",
-    customize: "Customize",
-    writeMessage: "Write your message...",
-    selectColor: "Select Color",
-    preview: "Preview",
-    reset: "Reset",
     hadith: "Narrated Abu Huraira: The Prophet said, \"(Allah said), 'Every good deed of Adam's son is for him except fasting; it is for Me. and I shall reward (the fasting person) for it.' Verily, the smell of the mouth of a fasting person is better to Allah than the smell of musk.\" (Sahih al-Bukhari 5927)",
     periods: {
       dawn: "Dawn", morning: "Morning", noon: "Noon", afternoon: "Afternoon", evening: "Evening", night: "Night"
@@ -224,8 +114,6 @@ export const TRANSLATIONS: Record<Language, any> = {
     suhoorEnded: "সেহেরী শেষ",
     iftarEnded: "ইফতার হয়েছে",
     share: "শেয়ার",
-    greetings: "শুভেচ্ছা কার্ড",
-    send: "মেসেজ পাঠান",
     shareMessage: "তারিখ: {date}\n{day}\nসেহরি: {suhoor}, ইফতার: {iftar}\nমসজিদ হযরত হামজা (রা:)",
     donate: "দান করুন",
     donateTitle: "রমজানের জন্য দান করুন",
@@ -237,11 +125,6 @@ export const TRANSLATIONS: Record<Language, any> = {
     swift: "SWIFT",
     copy: "কপি",
     copied: "কপি হয়েছে!",
-    customize: "কাস্টমাইজ",
-    writeMessage: "আপনার বার্তা লিখুন...",
-    selectColor: "রঙ নির্বাচন করুন",
-    preview: "প্রিভিউ",
-    reset: "রিসেট",
     hadith: "আবু হুরায়রা (রাঃ) থেকে বর্ণিতঃ রাসূলুল্লাহ (সাল্লাল্লাহু ‘আলাইহি ওয়া সাল্লাম) বলেছেন, আল্লাহ তা'আলা বলেন, বনী আদমের প্রতিটি আমল তার নিজের জন্য, শুধু রোজা ব্যতীত; কারণ তা আমার জন্য এবং আমিই এর প্রতিদান দেব। নিশ্চয়ই রোজাদারের মুখের গন্ধ আল্লাহর নিকট কস্তুরীর সুগন্ধির চেয়েও অধিক প্রিয়। (সহীহ বুখারী ৫৯২৭)",
     listenAdhan: "আযান শুনুন",
     periods: {
@@ -282,8 +165,6 @@ export const TRANSLATIONS: Record<Language, any> = {
     iftarEnded: "Iftar passou",
     listenAdhan: "Ouvir Adhan",
     share: "Partilhar",
-    greetings: "Cartões",
-    send: "Enviar Mensagem",
     shareMessage: "Data: {date}\n{day}\nSuhur: {suhoor}\nIftar: {iftar}\nMesquita Hazrat Hamza (R.A)",
     donate: "Doar",
     donateTitle: "Doar para o Ramadão",
@@ -295,11 +176,6 @@ export const TRANSLATIONS: Record<Language, any> = {
     swift: "SWIFT",
     copy: "Copiar",
     copied: "Copiado!",
-    customize: "Personalizar",
-    writeMessage: "Escreva a sua mensagem...",
-    selectColor: "Selecionar Cor",
-    preview: "Pré-visualizar",
-    reset: "Repor",
     hadith: "Narrado por Abu Huraira: O Profeta disse: \"(Allah disse), 'Toda boa ação do filho de Adão é para ele, exceto o jejum; é para Mim, e Eu recompensarei (a pessoa que jejua) por isso.' Em verdade, o cheiro da boca de uma pessoa que jejua é melhor para Allah do que o cheiro do almíscar.\" (Sahih al-Bukhari 5927)",
     periods: {
       dawn: "Madrugada", morning: "Manhã", noon: "Meio-dia", afternoon: "Tarde", evening: "Noite", night: "Noite"
