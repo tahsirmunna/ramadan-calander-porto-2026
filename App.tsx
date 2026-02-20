@@ -18,13 +18,17 @@ import {
   List,
   LayoutGrid,
   Linkedin,
-  Share2
+  Share2,
+  Send,
+  Heart,
+  HandHeart,
+  Copy
 } from 'lucide-react';
-import { Language, AppSettings } from './types';
-import { CALENDAR_DATA, TRANSLATIONS } from './constants';
+import { Language, AppSettings, GreetingCard } from './types';
+import { CALENDAR_DATA, TRANSLATIONS, GREETING_CARDS } from './constants';
 
-const ADHAN_URL = 'https://www.islamcan.com/audio/adhan/azan1.mp3';
-const ADHAN_FALLBACK_URL = 'https://ia800203.us.archive.org/20/items/Adhan_201509/Adhan.mp3';
+const ADHAN_URL = 'https://ia800203.us.archive.org/20/items/Adhan_201509/Adhan.mp3';
+const ADHAN_FALLBACK_URL = 'https://www.islamcan.com/audio/adhan/azan1.mp3';
 
 const Lantern = ({ className = "", style }: { className?: string; style?: React.CSSProperties }) => (
   <svg className={`w-12 h-16 text-amber-500/40 ${className}`} viewBox="0 0 100 150" fill="currentColor" style={style}>
@@ -64,7 +68,13 @@ export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isPreviewing, setIsPreviewing] = useState<boolean>(false);
   const [showFullCalendar, setShowFullCalendar] = useState(false);
+  const [showGreetings, setShowGreetings] = useState(false);
+  const [showDonate, setShowDonate] = useState(false);
   const [showCopied, setShowCopied] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [customizingCard, setCustomizingCard] = useState<GreetingCard | null>(null);
+  const [customMessage, setCustomMessage] = useState('');
+  const [customColor, setCustomColor] = useState('');
 
   const t = TRANSLATIONS[settings.language] || TRANSLATIONS[Language.EN];
   const isBengali = settings.language === Language.BN;
@@ -163,7 +173,7 @@ export default function App() {
         const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
         adhanBufferRef.current = audioBuffer;
       } catch (err) {
-        console.warn("Adhan prefetch failed, falling back to element playback", err);
+        // Adhan prefetch failed, falling back to element playback
         adhanAudioFallbackRef.current = new Audio(ADHAN_URL);
         adhanAudioFallbackRef.current.addEventListener('error', () => {
            if (adhanAudioFallbackRef.current) adhanAudioFallbackRef.current.src = ADHAN_FALLBACK_URL;
@@ -250,6 +260,46 @@ export default function App() {
         audio.src = ADHAN_FALLBACK_URL;
         try { await audio.play(); } catch(e) { setIsPreviewing(false); }
       }
+    }
+  };
+
+  const handleShareGreeting = async (card: GreetingCard, messageOverride?: string) => {
+    const message = messageOverride || card.messages[settings.language] || card.messages[Language.EN];
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Ramadan Greeting',
+          text: message,
+          url: window.location.href,
+        });
+      } catch (err) {
+        console.error("Share failed", err);
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(`${message}\n${window.location.href}`);
+        setShowCopied(true);
+        setTimeout(() => setShowCopied(false), 2000);
+      } catch (err) {
+        console.error("Clipboard copy failed", err);
+      }
+    }
+  };
+
+  const openCustomization = (card: GreetingCard) => {
+    setCustomizingCard(card);
+    setCustomMessage(card.messages[settings.language] || card.messages[Language.EN]);
+    setCustomColor(card.color);
+  };
+
+  const handleCopy = async (text: string, field: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedField(field);
+      setTimeout(() => setCopiedField(null), 2000);
+    } catch (err) {
+      console.error("Clipboard copy failed", err);
     }
   };
 
@@ -349,34 +399,53 @@ export default function App() {
         <Lantern className="float-animation" style={{ animationDelay: '1s' }} />
       </div>
 
-      <header className="w-full max-w-4xl flex justify-between items-center mb-5 md:mb-10 z-30">
-        <div className="flex items-center gap-4 flex-1 min-w-0 pr-2">
-          <div className="bg-amber-500/10 p-2.5 rounded-2xl border border-amber-500/20 shadow-[0_0_20px_rgba(245,158,11,0.2)] shrink-0 float-animation">
-            <Moon className="text-amber-500 w-7 h-7 md:w-8 md:h-8" />
+      <header className="w-full max-w-4xl flex flex-col items-center gap-6 mb-8 md:mb-12 z-30 -mt-2 md:-mt-4">
+        <div className="flex flex-row items-center text-left gap-4">
+          <div className="bg-amber-500/10 p-3 rounded-2xl border border-amber-500/20 shadow-[0_0_30px_rgba(245,158,11,0.15)] float-animation">
+            <Moon className="text-amber-500 w-8 h-8 md:w-10 md:h-10" />
           </div>
-          <div className="min-w-0">
-            <h1 className={`text-base md:text-2xl font-black tracking-tight leading-tight ${isBengali ? 'font-bengali-bold text-amber-500' : 'text-white'}`}>{t.title}</h1>
-            <div className="flex items-center gap-2">
+          <div>
+            <h1 className={`text-lg md:text-3xl font-black tracking-tight leading-tight mb-1 ${isBengali ? 'font-bengali-bold text-amber-500' : 'text-white'}`}>{t.title}</h1>
+            <div className="flex items-center justify-start gap-2">
               <MapPin className="w-3 h-3 text-slate-500" />
-              <p className="text-[6.5px] md:text-[9px] text-slate-400 font-bold uppercase tracking-[0.2em] opacity-80 whitespace-nowrap">{t.subTitle}</p>
+              <p className="text-[8px] md:text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] opacity-80">{t.subTitle}</p>
             </div>
           </div>
         </div>
         
-        <div className="flex items-center gap-2 shrink-0">
-          <button onClick={() => setShowFullCalendar(!showFullCalendar)} className="bg-slate-800/40 hover:bg-slate-700/60 border border-slate-700/50 p-2.5 rounded-2xl transition-all shadow-xl backdrop-blur-md">
-            {showFullCalendar ? <LayoutGrid className="w-5 h-5 text-amber-500" /> : <List className="w-5 h-5 text-amber-500" />}
+        <div className="flex items-center gap-2 bg-slate-950/40 p-1.5 rounded-2xl border border-slate-800/50 backdrop-blur-md shadow-2xl">
+          <button onClick={() => { setShowDonate(true); setShowGreetings(false); setShowFullCalendar(false); }} className={`p-3 rounded-xl transition-all flex items-center gap-2 hover:bg-slate-800/60 text-slate-400 hover:text-amber-500`}>
+            <HandHeart className="w-5 h-5" />
+            <span className="hidden md:inline text-[10px] font-black uppercase tracking-widest">{t.donate}</span>
+          </button>
+
+          <div className="w-px h-6 bg-slate-800/50 mx-1"></div>
+
+          <button onClick={() => { setShowGreetings(!showGreetings); setShowFullCalendar(false); }} className={`p-3 rounded-xl transition-all flex items-center gap-2 ${showGreetings ? 'bg-rose-500/20 text-rose-500' : 'hover:bg-slate-800/60 text-slate-400 hover:text-amber-500'}`}>
+            <Heart className={`w-5 h-5 ${showGreetings ? 'fill-rose-500' : ''}`} />
+            <span className="hidden md:inline text-[10px] font-black uppercase tracking-widest">{t.greetings}</span>
+          </button>
+
+          <div className="w-px h-6 bg-slate-800/50 mx-1"></div>
+
+          <button onClick={() => { setShowFullCalendar(!showFullCalendar); setShowGreetings(false); }} className={`p-3 rounded-xl transition-all flex items-center gap-2 ${showFullCalendar ? 'bg-amber-500/20 text-amber-500' : 'hover:bg-slate-800/60 text-slate-400 hover:text-amber-500'}`}>
+            {showFullCalendar ? <LayoutGrid className="w-5 h-5" /> : <List className="w-5 h-5" />}
+            <span className="hidden md:inline text-[10px] font-black uppercase tracking-widest">{t.fullCalendar}</span>
           </button>
           
-          <button onClick={() => setIsSettingsOpen(true)} className="bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 px-3 md:px-5 py-2.5 rounded-2xl transition-all shadow-xl backdrop-blur-md flex items-center gap-2 group">
-            <Bell className="w-4 h-4 text-amber-500 group-hover:rotate-12 transition-transform" />
-            <span className={`hidden sm:inline text-[10px] md:text-[11px] font-black uppercase tracking-widest text-amber-200 ${isBengali ? 'font-bengali-bold' : ''}`}>{t.alarmsBtn}</span>
+          <div className="w-px h-6 bg-slate-800/50 mx-1"></div>
+          
+          <button onClick={() => setIsSettingsOpen(true)} className="p-3 rounded-xl hover:bg-slate-800/60 text-slate-400 hover:text-amber-500 transition-all flex items-center gap-2 group">
+            <Bell className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+            <span className={`hidden md:inline text-[10px] font-black uppercase tracking-widest ${isBengali ? 'font-bengali-bold' : ''}`}>{t.alarmsBtn}</span>
           </button>
+          
+          <div className="w-px h-6 bg-slate-800/50 mx-1"></div>
           
           <div className="relative">
-            <button onClick={() => setIsLangMenuOpen(!isLangMenuOpen)} className="bg-slate-800/40 hover:bg-slate-700/60 border border-slate-700/50 px-3 py-2.5 rounded-2xl transition-all flex items-center gap-2 shadow-xl backdrop-blur-md">
-              <Globe className="w-4 h-4 text-slate-400" />
-              <span className="text-[10px] font-black uppercase tracking-tighter text-slate-300">{settings.language.toUpperCase()}</span>
+            <button onClick={() => setIsLangMenuOpen(!isLangMenuOpen)} className="p-3 rounded-xl hover:bg-slate-800/60 text-slate-400 hover:text-amber-500 transition-all flex items-center gap-2">
+              <Globe className="w-5 h-5" />
+              <span className="text-[10px] font-black uppercase tracking-tighter">{settings.language.toUpperCase()}</span>
             </button>
             {isLangMenuOpen && (
               <>
@@ -396,7 +465,49 @@ export default function App() {
       </header>
 
       <main className="w-full max-w-4xl z-10 flex flex-col gap-4 md:gap-8">
-        {!showFullCalendar ? (
+        {showGreetings ? (
+          <div className="glass-panel rounded-[2rem] md:rounded-[3.5rem] p-6 md:p-10 relative overflow-hidden animate-in fade-in slide-in-from-bottom-4">
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-2xl md:text-4xl font-black text-amber-500">{t.greetings}</h2>
+              <button onClick={() => setShowGreetings(false)} className="p-2 bg-slate-800 rounded-xl hover:bg-slate-700 transition-colors">
+                <X className="w-6 h-6 text-slate-400" />
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {GREETING_CARDS.map((card) => (
+                <div key={card.id} className="bg-slate-900/60 border border-slate-700/50 rounded-3xl overflow-hidden group/card hover:border-amber-500/30 transition-all flex flex-col">
+                  <div className="relative h-40 bg-slate-950/50 flex items-center justify-center overflow-hidden group-hover/card:bg-slate-950/80 transition-colors">
+                    <div className={`p-6 rounded-full bg-slate-900/80 border border-slate-800 shadow-xl group-hover/card:scale-110 transition-transform duration-500 ${card.color.replace('text-', 'bg-').replace('400', '500/10').replace('500', '500/10')}`}>
+                      <card.icon className={`w-12 h-12 ${card.color}`} />
+                    </div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent opacity-60"></div>
+                  </div>
+                  <div className="p-6 flex-1 flex flex-col">
+                    <p className={`text-slate-200 text-sm md:text-base leading-relaxed mb-6 italic flex-1 ${isBengali ? 'font-bengali' : ''}`}>
+                      "{card.messages[settings.language] || card.messages[Language.EN]}"
+                    </p>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => openCustomization(card)}
+                        className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 py-3 rounded-2xl font-bold uppercase tracking-wider text-xs transition-all"
+                      >
+                        {t.customize}
+                      </button>
+                      <button 
+                        onClick={() => handleShareGreeting(card)}
+                        className="flex-1 bg-amber-500/10 hover:bg-amber-500 text-amber-500 hover:text-slate-950 border border-amber-500/20 py-3 rounded-2xl font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                      >
+                        <Send className="w-4 h-4" />
+                        <span className={isBengali ? 'font-bengali-bold' : ''}>{t.send}</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : !showFullCalendar ? (
           <>
             <div className="glass-panel rounded-[2rem] md:rounded-[3.5rem] p-4 md:p-14 relative overflow-hidden group">
               <div className="absolute -top-10 -right-10 p-12 opacity-5 rotate-12 group-hover:opacity-10 transition-opacity"><Sparkles className="w-40 h-40 text-amber-500" /></div>
@@ -457,7 +568,10 @@ export default function App() {
                   </div>
                   <div className="mt-3 md:mt-10 flex items-center justify-center min-h-[1rem]">
                     {getSuhoorCountdown() ? (
-                      <span className="text-[7px] md:text-base font-bold text-emerald-200 bg-emerald-500/10 px-3 md:px-6 py-1 md:py-2.5 rounded-full border border-emerald-500/20">{t.suhoorRemaining}: {getSuhoorCountdown()}</span>
+                      <div className="flex flex-col items-center bg-emerald-500/10 px-3 md:px-6 py-1 md:py-2.5 rounded-2xl border border-emerald-500/20">
+                        <span className="text-[7px] md:text-xs font-bold text-emerald-200/70 uppercase tracking-widest mb-0.5">{t.suhoorRemaining}</span>
+                        <span className="text-[9px] md:text-base font-black text-emerald-100 tracking-wider font-mono">{getSuhoorCountdown()}</span>
+                      </div>
                     ) : (isTodayDate(currentData.date) && !isAfterIftarToday() && <span className="text-[7px] md:text-base font-bold text-rose-300 bg-rose-500/10 px-3 md:px-6 py-1 md:py-2.5 rounded-full">{t.suhoorEnded}</span>)}
                   </div>
                 </div>
@@ -475,7 +589,10 @@ export default function App() {
                   </div>
                   <div className="mt-3 md:mt-10 flex items-center justify-center min-h-[1rem]">
                     {getCountdown(currentData.iftar, currentData.date) ? (
-                      <span className="text-[7px] md:text-base font-bold text-orange-200 bg-orange-500/10 px-3 md:px-6 py-1 md:py-2.5 rounded-full border border-orange-500/20">{t.iftarRemaining}: {getCountdown(currentData.iftar, currentData.date)}</span>
+                      <div className="flex flex-col items-center bg-orange-500/10 px-3 md:px-6 py-1 md:py-2.5 rounded-2xl border border-orange-500/20">
+                        <span className="text-[7px] md:text-xs font-bold text-orange-200/70 uppercase tracking-widest mb-0.5">{t.iftarRemaining}</span>
+                        <span className="text-[9px] md:text-base font-black text-orange-100 tracking-wider font-mono">{getCountdown(currentData.iftar, currentData.date)}</span>
+                      </div>
                     ) : (isTodayDate(currentData.date) && <span className="text-[7px] md:text-base font-bold text-orange-300 bg-orange-500/10 px-3 md:px-6 py-1 md:py-2.5 rounded-full">{t.iftarEnded}</span>)}
                   </div>
                 </div>
@@ -610,6 +727,156 @@ export default function App() {
                 >
                   {isPreviewing ? <VolumeX className="w-6 h-6" /> : <Play className="w-6 h-6 text-amber-500" />}
                   <span className={isBengali ? 'text-lg font-bengali-bold' : ''}>{t.listenAdhan}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDonate && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-xl" onClick={() => setShowDonate(false)}></div>
+          <div className="bg-slate-900 border border-slate-700/50 w-full max-w-2xl rounded-[2.5rem] p-6 md:p-10 shadow-2xl relative z-110 animate-in fade-in zoom-in duration-300 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-2xl md:text-3xl font-black text-amber-500">{t.donateTitle}</h2>
+              <button onClick={() => setShowDonate(false)} className="p-2 hover:bg-slate-800 rounded-full transition-colors"><X className="w-6 h-6 text-slate-400" /></button>
+            </div>
+            
+            <div className="space-y-6">
+              <div className="rounded-3xl border border-amber-500/20 shadow-2xl bg-gradient-to-br from-slate-900 to-slate-950 p-8 md:p-12 text-center relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-500 to-transparent opacity-50"></div>
+                <div className="relative z-10">
+                  <h3 className="text-2xl md:text-4xl font-black text-amber-500 mb-3 tracking-tight">MESQUITA HAZRAT HAMZA (R.A)</h3>
+                  <div className="h-px w-24 bg-amber-500/30 mx-auto mb-3"></div>
+                  <p className="text-slate-300 font-bold tracking-[0.15em] text-xs md:text-sm uppercase">CENTRO CULTURAL MUÇULMANO DO PORTO</p>
+                </div>
+                <div className="absolute -bottom-10 -right-10 opacity-5 rotate-12 pointer-events-none">
+                  <Moon className="w-40 h-40 text-amber-500" />
+                </div>
+              </div>
+
+              <div className="bg-slate-950/40 rounded-3xl border border-slate-800/50 p-6 space-y-4">
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">{t.bankName}</p>
+                  <p className="text-lg md:text-xl font-mono text-white">NOVO BANCO</p>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">{t.account}</p>
+                  <div className="flex items-center justify-between gap-4 bg-slate-900/50 p-3 rounded-xl border border-slate-800">
+                    <p className="text-sm md:text-base font-mono text-amber-100 break-all">000668516241</p>
+                    <button onClick={() => handleCopy("000668516241", "acc")} className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-500 transition-colors relative">
+                      {copiedField === "acc" ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">{t.nib}</p>
+                  <div className="flex items-center justify-between gap-4 bg-slate-900/50 p-3 rounded-xl border border-slate-800">
+                    <p className="text-sm md:text-base font-mono text-amber-100 break-all">000700000066851624123</p>
+                    <button onClick={() => handleCopy("000700000066851624123", "nib")} className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-500 transition-colors relative">
+                      {copiedField === "nib" ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">{t.iban}</p>
+                  <div className="flex items-center justify-between gap-4 bg-slate-900/50 p-3 rounded-xl border border-slate-800">
+                    <p className="text-sm md:text-base font-mono text-amber-100 break-all">PT50000700000066851624123</p>
+                    <button onClick={() => handleCopy("PT50000700000066851624123", "iban")} className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-500 transition-colors relative">
+                      {copiedField === "iban" ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">{t.swift}</p>
+                  <div className="flex items-center justify-between gap-4 bg-slate-900/50 p-3 rounded-xl border border-slate-800">
+                    <p className="text-sm md:text-base font-mono text-amber-100 break-all">BESCPTPL</p>
+                    <button onClick={() => handleCopy("BESCPTPL", "swift")} className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-500 transition-colors relative">
+                      {copiedField === "swift" ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {customizingCard && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-xl" onClick={() => setCustomizingCard(null)}></div>
+          <div className="bg-slate-900 border border-slate-700/50 w-full max-w-lg rounded-[2.5rem] p-8 shadow-2xl relative z-130 animate-in fade-in zoom-in duration-300">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-black text-white">{t.customize}</h2>
+              <button onClick={() => setCustomizingCard(null)} className="p-2 hover:bg-slate-800 rounded-full transition-colors"><X className="w-6 h-6 text-slate-400" /></button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Preview */}
+              <div className="bg-slate-950/50 border border-slate-800 rounded-3xl overflow-hidden relative group">
+                <div className="relative h-32 flex items-center justify-center overflow-hidden">
+                  <div className={`p-4 rounded-full bg-slate-900/80 border border-slate-800 shadow-xl ${customColor.replace('text-', 'bg-').replace('400', '500/10').replace('500', '500/10')}`}>
+                    <customizingCard.icon className={`w-10 h-10 ${customColor}`} />
+                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent opacity-60"></div>
+                </div>
+                <div className="p-6 pt-0 text-center">
+                  <p className={`text-slate-200 text-sm leading-relaxed italic ${isBengali ? 'font-bengali' : ''}`}>
+                    "{customMessage}"
+                  </p>
+                </div>
+              </div>
+
+              {/* Message Input */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{t.writeMessage}</label>
+                <textarea
+                  value={customMessage}
+                  onChange={(e) => setCustomMessage(e.target.value)}
+                  className={`w-full bg-slate-950/50 border border-slate-800 rounded-2xl p-4 text-slate-200 focus:outline-none focus:border-amber-500/50 transition-colors min-h-[100px] ${isBengali ? 'font-bengali' : ''}`}
+                  placeholder={t.writeMessage}
+                />
+              </div>
+
+              {/* Color Selection */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{t.selectColor}</label>
+                <div className="flex flex-wrap gap-3">
+                  {['text-amber-500', 'text-rose-500', 'text-emerald-500', 'text-blue-400', 'text-purple-400', 'text-orange-500', 'text-pink-400', 'text-indigo-400'].map((color) => (
+                    <button
+                      key={color}
+                      onClick={() => setCustomColor(color)}
+                      className={`w-8 h-8 rounded-full border-2 transition-all ${customColor === color ? 'border-white scale-110' : 'border-transparent hover:scale-105'} ${color.replace('text-', 'bg-')}`}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="grid grid-cols-2 gap-4 pt-2">
+                <button 
+                  onClick={() => {
+                    setCustomMessage(customizingCard.messages[settings.language] || customizingCard.messages[Language.EN]);
+                    setCustomColor(customizingCard.color);
+                  }}
+                  className="bg-slate-800 hover:bg-slate-700 text-slate-400 py-3 rounded-2xl font-bold uppercase tracking-widest text-xs transition-all"
+                >
+                  {t.reset}
+                </button>
+                <button 
+                  onClick={() => {
+                    handleShareGreeting({ ...customizingCard, color: customColor }, customMessage);
+                    setCustomizingCard(null);
+                  }}
+                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 py-3 rounded-2xl font-black uppercase tracking-widest text-xs transition-all flex items-center justify-center gap-2"
+                >
+                  <Send className="w-4 h-4" />
+                  <span>{t.send}</span>
                 </button>
               </div>
             </div>

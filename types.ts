@@ -12,6 +12,13 @@ export interface CalendarDay {
   iftar: string;
 }
 
+export interface GreetingCard {
+  id: string;
+  icon: any; // Lucide icon component
+  color: string; // Tailwind color class for the icon
+  messages: Record<Language, string>;
+}
+
 export interface AppSettings {
   language: Language;
   iftarAlarmEnabled: boolean;
