@@ -69,6 +69,8 @@ export default function App() {
   const [showDonate, setShowDonate] = useState(false);
   const [showCopied, setShowCopied] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [showCountdownPopup, setShowCountdownPopup] = useState(false);
+  const [popupType, setPopupType] = useState<'suhoor' | 'iftar' | null>(null);
 
   const t = TRANSLATIONS[settings.language] || TRANSLATIONS[Language.EN];
   const isBengali = settings.language === Language.BN;
@@ -190,6 +192,31 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    // Check if we should show popup on load/day change
+    const now = new Date();
+    const todayData = CALENDAR_DATA[currentDayIndex];
+    if (!todayData || !isTodayDate(todayData.date)) return;
+
+    const checkInitialPopup = (targetTimeStr: string, type: 'suhoor' | 'iftar') => {
+      const [h, m] = targetTimeStr.split(':').map(Number);
+      const targetDate = new Date();
+      targetDate.setHours(h, m, 0, 0);
+      
+      const diff = targetDate.getTime() - now.getTime();
+      const minutesLeft = Math.floor(diff / 60000);
+
+      // If within 10 minutes and not yet passed (or just passed within a minute margin if needed, but let's stick to future)
+      if (minutesLeft <= 10 && minutesLeft >= 0) {
+        setPopupType(type);
+        setShowCountdownPopup(true);
+      }
+    };
+
+    checkInitialPopup(todayData.iftar, 'iftar');
+    checkInitialPopup(todayData.suhoor, 'suhoor');
+  }, [currentDayIndex]);
+
+  useEffect(() => {
     const timer = setInterval(() => {
       const now = new Date();
       setCurrentTime(now);
@@ -203,6 +230,49 @@ export default function App() {
     if (!todayData) return;
     const timeStr = now.toTimeString().slice(0, 5);
     
+    // Check for 10 minutes remaining
+    const checkTenMinutesLeft = (targetTimeStr: string, type: 'suhoor' | 'iftar') => {
+      if (!isTodayDate(todayData.date)) return;
+      
+      const [h, m] = targetTimeStr.split(':').map(Number);
+      const targetDate = new Date();
+      targetDate.setHours(h, m, 0, 0);
+      
+      const diff = targetDate.getTime() - now.getTime();
+      const minutesLeft = Math.floor(diff / 60000);
+      
+      // Show popup if exactly 10 minutes left, or if within 10 minutes and not shown yet (optional logic, 
+      // but user asked for "When the Ifter and Sehri 10 minutes left a popup page comes")
+      // We'll trigger it when minutesLeft is <= 10 and > 0.
+      // To avoid re-opening if closed, we might need a ref or just let the user close it.
+      // User said "after ifter or sheri time will be finish the popup page will be automatically colse."
+      
+      if (minutesLeft <= 10 && minutesLeft >= 0 && !showCountdownPopup) {
+         // This logic might be too aggressive if user closes it. 
+         // But for now, let's just check if we are in the window.
+         // Better: Check if we are in the window, and if the time is up, close it.
+      }
+      
+      if (diff <= 0 && showCountdownPopup && popupType === type) {
+        setShowCountdownPopup(false);
+        setPopupType(null);
+      } else if (minutesLeft <= 10 && minutesLeft >= 0 && !showCountdownPopup && popupType !== type) {
+         // This is tricky without tracking "user closed it manually".
+         // For simplicity, let's just trigger it once or rely on the manual test button for now as requested?
+         // "When the Ifter and Sehri 10 minutes left a popup page comes"
+         // Let's use a simple flag to avoid reopening? Or just open it.
+         // Let's implement the automatic open logic carefully.
+         // We will open it if it's exactly 10 minutes left (or close to it) to avoid spamming.
+         if (minutesLeft === 10 && now.getSeconds() === 0) {
+            setPopupType(type);
+            setShowCountdownPopup(true);
+         }
+      }
+    };
+
+    checkTenMinutesLeft(todayData.iftar, 'iftar');
+    checkTenMinutesLeft(todayData.suhoor, 'suhoor');
+
     if (settings.iftarAlarmEnabled && timeStr === todayData.iftar && now.getSeconds() === 0 && isTodayDate(todayData.date)) {
       playAdhan();
     }
@@ -466,18 +536,18 @@ export default function App() {
               </div>
 
               <div className="grid grid-cols-2 gap-3 md:gap-14 mb-5 md:mb-10 relative z-10">
-                <div className="bg-gradient-to-br from-emerald-400/20 via-emerald-950/40 to-slate-950/80 p-5 md:p-14 rounded-[2rem] md:rounded-[4rem] border border-emerald-400/30 text-center flex flex-col items-center shadow-[0_0_40px_rgba(52,211,153,0.1)] group/item relative">
+                <div className="bg-gradient-to-br from-emerald-400/20 via-emerald-950/40 to-slate-950/80 p-5 md:p-8 lg:p-14 rounded-[2rem] md:rounded-[4rem] border border-emerald-400/30 text-center flex flex-col items-center shadow-[0_0_40px_rgba(52,211,153,0.1)] group/item relative">
                   <div className="bg-emerald-400/10 p-1.5 md:p-4 rounded-full mb-1.5 md:mb-6">
                     <Sun className="w-5 h-5 md:w-10 md:h-10 text-emerald-400" />
                   </div>
-                  <span className={`text-[10px] md:text-2xl font-black uppercase tracking-widest text-emerald-100 mb-0.5 md:mb-4`}>{t.suhoor}</span>
+                  <span className={`text-[10px] md:text-xl lg:text-2xl font-black uppercase tracking-widest text-emerald-100 mb-0.5 md:mb-4`}>{t.suhoor}</span>
                   <div className="flex flex-col items-center">
                     <div className="flex items-baseline gap-1">
-                      <span className="text-3xl md:text-[10rem] font-black text-white drop-shadow-[0_0_20px_rgba(52,211,153,0.4)] leading-none">
+                      <span className="text-3xl md:text-6xl lg:text-8xl xl:text-[10rem] font-black text-white drop-shadow-[0_0_20px_rgba(52,211,153,0.4)] leading-none">
                         {isAfterIftarToday() ? getTimeParts(CALENDAR_DATA[currentDayIndex + 1]?.suhoor || currentData.suhoor).time : getTimeParts(currentData.suhoor).time}
                       </span>
                     </div>
-                    <span className="text-[9px] md:text-xl font-bold text-emerald-400/80 mt-1.5 md:mt-5 px-2.5 py-0.5 md:py-1 bg-emerald-500/10 rounded-md border border-emerald-500/10">
+                    <span className="text-[9px] md:text-lg lg:text-xl font-bold text-emerald-400/80 mt-1.5 md:mt-5 px-2.5 py-0.5 md:py-1 bg-emerald-500/10 rounded-md border border-emerald-500/10">
                       {isAfterIftarToday() ? t.today : t.periods.dawn}
                     </span>
                   </div>
@@ -491,16 +561,16 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-orange-400/20 via-orange-950/40 to-slate-950/80 p-5 md:p-14 rounded-[2rem] md:rounded-[4rem] border border-orange-400/30 text-center flex flex-col items-center shadow-[0_0_40px_rgba(251,146,60,0.1)] group/item relative">
+                <div className="bg-gradient-to-br from-orange-400/20 via-orange-950/40 to-slate-950/80 p-5 md:p-8 lg:p-14 rounded-[2rem] md:rounded-[4rem] border border-orange-400/30 text-center flex flex-col items-center shadow-[0_0_40px_rgba(251,146,60,0.1)] group/item relative">
                   <div className="bg-orange-400/10 p-1.5 md:p-4 rounded-full mb-1.5 md:mb-6">
                     <Moon className="w-5 h-5 md:w-10 md:h-10 text-orange-400" />
                   </div>
-                  <span className={`text-[10px] md:text-2xl font-black uppercase tracking-widest text-orange-100 mb-0.5 md:mb-4`}>{t.iftar}</span>
+                  <span className={`text-[10px] md:text-xl lg:text-2xl font-black uppercase tracking-widest text-orange-100 mb-0.5 md:mb-4`}>{t.iftar}</span>
                   <div className="flex flex-col items-center">
                     <div className="flex items-baseline gap-1">
-                      <span className="text-3xl md:text-[10rem] font-black text-white drop-shadow-[0_0_20px_rgba(251,146,60,0.4)] leading-none">{getTimeParts(currentData.iftar).time}</span>
+                      <span className="text-3xl md:text-6xl lg:text-8xl xl:text-[10rem] font-black text-white drop-shadow-[0_0_20px_rgba(251,146,60,0.4)] leading-none">{getTimeParts(currentData.iftar).time}</span>
                     </div>
-                    <span className="text-[9px] md:text-xl font-bold text-orange-400/80 mt-1.5 md:mt-5 px-2.5 py-0.5 md:py-1 bg-orange-500/10 rounded-md border border-orange-500/10">{t.periods.evening}</span>
+                    <span className="text-[9px] md:text-lg lg:text-xl font-bold text-orange-400/80 mt-1.5 md:mt-5 px-2.5 py-0.5 md:py-1 bg-orange-500/10 rounded-md border border-orange-500/10">{t.periods.evening}</span>
                   </div>
                   <div className="mt-3 md:mt-10 flex items-center justify-center min-h-[1rem]">
                     {getCountdown(currentData.iftar, currentData.date) ? (
@@ -648,6 +718,81 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {showCountdownPopup && popupType && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/95 backdrop-blur-3xl animate-in fade-in duration-300 overflow-y-auto">
+          <div className="min-h-full w-full flex items-center justify-center p-4 py-12">
+            <button 
+              onClick={() => { setShowCountdownPopup(false); setPopupType(null); }}
+              className="fixed top-4 right-4 md:top-6 md:right-6 p-3 md:p-4 bg-slate-800/50 hover:bg-slate-700 rounded-full text-slate-400 hover:text-white transition-all z-50"
+            >
+              <X className="w-6 h-6 md:w-8 md:h-8" />
+            </button>
+            
+            <div className="flex flex-col items-center justify-center text-center w-full max-w-4xl relative">
+              <div className={`mb-4 md:mb-8 p-4 md:p-6 rounded-full ${popupType === 'iftar' ? 'bg-orange-500/10' : 'bg-emerald-500/10'}`}>
+                {popupType === 'iftar' ? (
+                  <Moon className="w-12 h-12 md:w-24 md:h-24 text-orange-500 animate-pulse" />
+                ) : (
+                  <Sun className="w-12 h-12 md:w-24 md:h-24 text-emerald-400 animate-pulse" />
+                )}
+              </div>
+              
+              <h2 className={`text-xl md:text-4xl font-black uppercase tracking-[0.2em] mb-2 md:mb-4 ${popupType === 'iftar' ? 'text-orange-500' : 'text-emerald-400'}`}>
+                {popupType === 'iftar' ? t.iftarRemaining : t.suhoorRemaining}
+              </h2>
+              
+              <div className="mb-6 md:mb-12 w-full flex justify-center">
+                <span className={`text-[15vw] md:text-[13vw] lg:text-[10rem] font-black leading-none font-mono tracking-tight ${popupType === 'iftar' ? 'text-white drop-shadow-[0_0_30px_rgba(249,115,22,0.5)]' : 'text-white drop-shadow-[0_0_30px_rgba(52,211,153,0.5)]'}`}>
+                  {popupType === 'iftar' 
+                    ? getCountdown(currentData.iftar, currentData.date) 
+                    : getSuhoorCountdown()}
+                </span>
+              </div>
+              
+              <div className="flex flex-col items-center gap-1 md:gap-2 bg-slate-900/50 p-4 md:p-6 rounded-3xl border border-slate-800 mb-6 md:mb-8">
+                <span className="text-[10px] md:text-sm font-bold text-slate-500 uppercase tracking-widest">
+                  {popupType === 'iftar' ? t.iftar : t.suhoor}
+                </span>
+                <span className="text-xl md:text-4xl font-black text-slate-300 font-mono">
+                  {popupType === 'iftar' 
+                    ? getTimeParts(currentData.iftar).time 
+                    : (isAfterIftarToday() && currentDayIndex + 1 < CALENDAR_DATA.length 
+                        ? getTimeParts(CALENDAR_DATA[currentDayIndex + 1].suhoor).time 
+                        : getTimeParts(currentData.suhoor).time)
+                  }
+                </span>
+              </div>
+
+              <div className="w-full max-w-xl mx-auto rounded-2xl overflow-hidden shadow-2xl border border-slate-700/50">
+                <img 
+                  src={popupType === 'iftar' 
+                    ? "https://www.prayertimenyc.com/wp-content/uploads/2017/05/iftar-dua.jpg" 
+                    : "https://i.pinimg.com/736x/f8/71/ff/f871ff145c4d10a48382032f66097b36.jpg"}
+                  alt={popupType === 'iftar' ? "Iftar Dua" : "Suhoor Dua"}
+                  className="w-full h-auto"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Temporary Test Button */}
+      <div className="fixed bottom-4 left-4 z-50 flex gap-2 opacity-50 hover:opacity-100 transition-opacity">
+        <button 
+          onClick={() => { setPopupType('iftar'); setShowCountdownPopup(true); }}
+          className="bg-slate-800 text-xs px-3 py-1 rounded border border-slate-700 text-slate-400"
+        >
+          Test Iftar Popup
+        </button>
+        <button 
+          onClick={() => { setPopupType('suhoor'); setShowCountdownPopup(true); }}
+          className="bg-slate-800 text-xs px-3 py-1 rounded border border-slate-700 text-slate-400"
+        >
+          Test Sehri Popup
+        </button>
+      </div>
 
       {showDonate && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
