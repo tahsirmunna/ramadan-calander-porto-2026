@@ -20,8 +20,7 @@ import {
   Linkedin,
   Share2,
   HandHeart,
-  Copy,
-  Maximize2
+  Copy
 } from 'lucide-react';
 import { Language, AppSettings } from './types';
 import { CALENDAR_DATA, TRANSLATIONS } from './constants';
@@ -555,7 +554,7 @@ export default function App() {
                         >
                           <div className="absolute inset-0 bg-emerald-400/10 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300"></div>
                           <span className="relative z-10 flex items-center gap-2 text-[10px] md:text-xs font-black uppercase tracking-widest">
-                            {t.suhoorCounter} <Maximize2 className="w-3 h-3" />
+                            {t.suhoorCounter}
                           </span>
                         </button>
                       </>
@@ -583,7 +582,7 @@ export default function App() {
                         >
                           <div className="absolute inset-0 bg-orange-400/10 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300"></div>
                           <span className="relative z-10 flex items-center gap-2 text-[10px] md:text-xs font-black uppercase tracking-widest">
-                            {t.iftarCounter} <Maximize2 className="w-3 h-3" />
+                            {t.iftarCounter}
                           </span>
                         </button>
                       </>
