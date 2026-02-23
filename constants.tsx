@@ -1,6 +1,5 @@
 
 import { CalendarDay, Language } from './types';
-import { Moon, Sun } from 'lucide-react';
 
 export const CALENDAR_DATA: CalendarDay[] = [
   { ramadanDay: 1, date: '2026-02-18', weekday: 'Wednesday', suhoor: '05:53', iftar: '18:16' },
