@@ -77,6 +77,9 @@ export const TRANSLATIONS: Record<Language, any> = {
     copy: "Copy",
     copied: "Copied!",
     hadith: "Narrated Abu Huraira: The Prophet said, \"(Allah said), 'Every good deed of Adam's son is for him except fasting; it is for Me. and I shall reward (the fasting person) for it.' Verily, the smell of the mouth of a fasting person is better to Allah than the smell of musk.\" (Sahih al-Bukhari 5927)",
+    showCounter: "Show Counter",
+    suhoorCounter: "Suhoor Counter",
+    iftarCounter: "Iftar Counter",
     periods: {
       dawn: "Dawn", morning: "Morning", noon: "Noon", afternoon: "Afternoon", evening: "Evening", night: "Night"
     },
@@ -127,6 +130,9 @@ export const TRANSLATIONS: Record<Language, any> = {
     copied: "কপি হয়েছে!",
     hadith: "আবু হুরায়রা (রাঃ) থেকে বর্ণিতঃ রাসূলুল্লাহ (সাল্লাল্লাহু ‘আলাইহি ওয়া সাল্লাম) বলেছেন, আল্লাহ তা'আলা বলেন, বনী আদমের প্রতিটি আমল তার নিজের জন্য, শুধু রোজা ব্যতীত; কারণ তা আমার জন্য এবং আমিই এর প্রতিদান দেব। নিশ্চয়ই রোজাদারের মুখের গন্ধ আল্লাহর নিকট কস্তুরীর সুগন্ধির চেয়েও অধিক প্রিয়। (সহীহ বুখারী ৫৯২৭)",
     listenAdhan: "আযান শুনুন",
+    showCounter: "কাউন্টার দেখুন",
+    suhoorCounter: "সেহরি কাউন্টার",
+    iftarCounter: "ইফতার কাউন্টার",
     periods: {
       dawn: "ভোর", morning: "সকাল", noon: "দুপুর", afternoon: "বিকেল", evening: "সন্ধ্যা", night: "রাত"
     },
@@ -177,6 +183,9 @@ export const TRANSLATIONS: Record<Language, any> = {
     copy: "Copiar",
     copied: "Copiado!",
     hadith: "Narrado por Abu Huraira: O Profeta disse: \"(Allah disse), 'Toda boa ação do filho de Adão é para ele, exceto o jejum; é para Mim, e Eu recompensarei (a pessoa que jejua) por isso.' Em verdade, o cheiro da boca de uma pessoa que jejua é melhor para Allah do que o cheiro do almíscar.\" (Sahih al-Bukhari 5927)",
+    showCounter: "Mostrar Contador",
+    suhoorCounter: "Contador Suhur",
+    iftarCounter: "Contador Iftar",
     periods: {
       dawn: "Madrugada", morning: "Manhã", noon: "Meio-dia", afternoon: "Tarde", evening: "Noite", night: "Noite"
     },

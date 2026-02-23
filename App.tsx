@@ -20,7 +20,8 @@ import {
   Linkedin,
   Share2,
   HandHeart,
-  Copy
+  Copy,
+  Maximize2
 } from 'lucide-react';
 import { Language, AppSettings } from './types';
 import { CALENDAR_DATA, TRANSLATIONS } from './constants';
@@ -71,6 +72,7 @@ export default function App() {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [showCountdownPopup, setShowCountdownPopup] = useState(false);
   const [popupType, setPopupType] = useState<'suhoor' | 'iftar' | null>(null);
+  const [lastPopupClosedTime, setLastPopupClosedTime] = useState<number | null>(null);
 
   const t = TRANSLATIONS[settings.language] || TRANSLATIONS[Language.EN];
   const isBengali = settings.language === Language.BN;
@@ -205,8 +207,8 @@ export default function App() {
       const diff = targetDate.getTime() - now.getTime();
       const minutesLeft = Math.floor(diff / 60000);
 
-      // If within 10 minutes and not yet passed (or just passed within a minute margin if needed, but let's stick to future)
-      if (minutesLeft <= 10 && minutesLeft >= 0) {
+      // If within 15 minutes and not yet passed (or just passed within a minute margin if needed, but let's stick to future)
+      if (minutesLeft <= 15 && minutesLeft >= 0) {
         setPopupType(type);
         setShowCountdownPopup(true);
       }
@@ -223,15 +225,15 @@ export default function App() {
       checkAlarms(now);
     }, 1000);
     return () => clearInterval(timer);
-  }, [settings, currentDayIndex]);
+  }, [settings, currentDayIndex, showCountdownPopup, popupType, lastPopupClosedTime]);
 
   const checkAlarms = (now: Date) => {
     const todayData = CALENDAR_DATA[currentDayIndex];
     if (!todayData) return;
     const timeStr = now.toTimeString().slice(0, 5);
     
-    // Check for 10 minutes remaining
-    const checkTenMinutesLeft = (targetTimeStr: string, type: 'suhoor' | 'iftar') => {
+    // Check for 15 minutes remaining
+    const checkFifteenMinutesLeft = (targetTimeStr: string, type: 'suhoor' | 'iftar') => {
       if (!isTodayDate(todayData.date)) return;
       
       const [h, m] = targetTimeStr.split(':').map(Number);
@@ -241,37 +243,30 @@ export default function App() {
       const diff = targetDate.getTime() - now.getTime();
       const minutesLeft = Math.floor(diff / 60000);
       
-      // Show popup if exactly 10 minutes left, or if within 10 minutes and not shown yet (optional logic, 
-      // but user asked for "When the Ifter and Sehri 10 minutes left a popup page comes")
-      // We'll trigger it when minutesLeft is <= 10 and > 0.
-      // To avoid re-opening if closed, we might need a ref or just let the user close it.
-      // User said "after ifter or sheri time will be finish the popup page will be automatically colse."
-      
-      if (minutesLeft <= 10 && minutesLeft >= 0 && !showCountdownPopup) {
-         // This logic might be too aggressive if user closes it. 
-         // But for now, let's just check if we are in the window.
-         // Better: Check if we are in the window, and if the time is up, close it.
-      }
-      
       if (diff <= 0 && showCountdownPopup && popupType === type) {
         setShowCountdownPopup(false);
         setPopupType(null);
-      } else if (minutesLeft <= 10 && minutesLeft >= 0 && !showCountdownPopup && popupType !== type) {
-         // This is tricky without tracking "user closed it manually".
-         // For simplicity, let's just trigger it once or rely on the manual test button for now as requested?
-         // "When the Ifter and Sehri 10 minutes left a popup page comes"
-         // Let's use a simple flag to avoid reopening? Or just open it.
-         // Let's implement the automatic open logic carefully.
-         // We will open it if it's exactly 10 minutes left (or close to it) to avoid spamming.
-         if (minutesLeft === 10 && now.getSeconds() === 0) {
+      } else if (minutesLeft <= 15 && minutesLeft >= 0 && !showCountdownPopup) {
+         // Auto-open logic:
+         // 1. If exactly 15 mins left (and seconds 0 to avoid spam), open it.
+         // 2. If within 15 mins but closed, check if 5 mins passed since close.
+         
+         const timeSinceClose = lastPopupClosedTime ? now.getTime() - lastPopupClosedTime : Infinity;
+         
+         if (minutesLeft === 15 && now.getSeconds() === 0) {
             setPopupType(type);
             setShowCountdownPopup(true);
+         } else if (timeSinceClose >= 5 * 60 * 1000) {
+            // Re-open if 5 mins passed since close and we are still in the window
+            setPopupType(type);
+            setShowCountdownPopup(true);
+            setLastPopupClosedTime(Date.now()); 
          }
       }
     };
 
-    checkTenMinutesLeft(todayData.iftar, 'iftar');
-    checkTenMinutesLeft(todayData.suhoor, 'suhoor');
+    checkFifteenMinutesLeft(todayData.iftar, 'iftar');
+    checkFifteenMinutesLeft(todayData.suhoor, 'suhoor');
 
     if (settings.iftarAlarmEnabled && timeStr === todayData.iftar && now.getSeconds() === 0 && isTodayDate(todayData.date)) {
       playAdhan();
@@ -551,12 +546,19 @@ export default function App() {
                       {isAfterIftarToday() ? t.today : t.periods.dawn}
                     </span>
                   </div>
-                  <div className="mt-3 md:mt-10 flex items-center justify-center min-h-[1rem]">
+                  <div className="mt-3 md:mt-10 flex flex-col items-center justify-center min-h-[1rem] gap-4">
                     {getSuhoorCountdown() ? (
-                      <div className="flex flex-col items-center bg-emerald-500/10 px-3 md:px-6 py-1 md:py-2.5 rounded-2xl border border-emerald-500/20">
-                        <span className="text-[7px] md:text-xs font-bold text-emerald-200/70 uppercase tracking-widest mb-0.5">{t.suhoorRemaining}</span>
-                        <span className="text-[9px] md:text-base font-black text-emerald-100 tracking-wider font-mono">{getSuhoorCountdown()}</span>
-                      </div>
+                      <>
+                        <button 
+                          onClick={() => { setPopupType('suhoor'); setShowCountdownPopup(true); }}
+                          className="group/btn relative overflow-hidden bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 hover:text-white border border-emerald-500/30 hover:border-emerald-400 px-4 py-2 rounded-xl transition-all duration-300 shadow-lg hover:shadow-emerald-500/20"
+                        >
+                          <div className="absolute inset-0 bg-emerald-400/10 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300"></div>
+                          <span className="relative z-10 flex items-center gap-2 text-[10px] md:text-xs font-black uppercase tracking-widest">
+                            {t.suhoorCounter} <Maximize2 className="w-3 h-3" />
+                          </span>
+                        </button>
+                      </>
                     ) : (isTodayDate(currentData.date) && !isAfterIftarToday() && <span className="text-[7px] md:text-base font-bold text-rose-300 bg-rose-500/10 px-3 md:px-6 py-1 md:py-2.5 rounded-full">{t.suhoorEnded}</span>)}
                   </div>
                 </div>
@@ -572,12 +574,19 @@ export default function App() {
                     </div>
                     <span className="text-[9px] md:text-lg lg:text-xl font-bold text-orange-400/80 mt-1.5 md:mt-5 px-2.5 py-0.5 md:py-1 bg-orange-500/10 rounded-md border border-orange-500/10">{t.periods.evening}</span>
                   </div>
-                  <div className="mt-3 md:mt-10 flex items-center justify-center min-h-[1rem]">
+                  <div className="mt-3 md:mt-10 flex flex-col items-center justify-center min-h-[1rem] gap-4">
                     {getCountdown(currentData.iftar, currentData.date) ? (
-                      <div className="flex flex-col items-center bg-orange-500/10 px-3 md:px-6 py-1 md:py-2.5 rounded-2xl border border-orange-500/20">
-                        <span className="text-[7px] md:text-xs font-bold text-orange-200/70 uppercase tracking-widest mb-0.5">{t.iftarRemaining}</span>
-                        <span className="text-[9px] md:text-base font-black text-orange-100 tracking-wider font-mono">{getCountdown(currentData.iftar, currentData.date)}</span>
-                      </div>
+                      <>
+                        <button 
+                          onClick={() => { setPopupType('iftar'); setShowCountdownPopup(true); }}
+                          className="group/btn relative overflow-hidden bg-orange-500/10 hover:bg-orange-500/20 text-orange-300 hover:text-white border border-orange-500/30 hover:border-orange-400 px-4 py-2 rounded-xl transition-all duration-300 shadow-lg hover:shadow-orange-500/20"
+                        >
+                          <div className="absolute inset-0 bg-orange-400/10 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300"></div>
+                          <span className="relative z-10 flex items-center gap-2 text-[10px] md:text-xs font-black uppercase tracking-widest">
+                            {t.iftarCounter} <Maximize2 className="w-3 h-3" />
+                          </span>
+                        </button>
+                      </>
                     ) : (isTodayDate(currentData.date) && <span className="text-[7px] md:text-base font-bold text-orange-300 bg-orange-500/10 px-3 md:px-6 py-1 md:py-2.5 rounded-full">{t.iftarEnded}</span>)}
                   </div>
                 </div>
@@ -723,7 +732,7 @@ export default function App() {
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/95 backdrop-blur-3xl animate-in fade-in duration-300 overflow-y-auto">
           <div className="min-h-full w-full flex items-center justify-center p-4 py-8 md:py-12">
             <button 
-              onClick={() => { setShowCountdownPopup(false); setPopupType(null); }}
+              onClick={() => { setShowCountdownPopup(false); setPopupType(null); setLastPopupClosedTime(Date.now()); }}
               className="fixed top-4 right-4 md:top-6 md:right-6 p-2 md:p-4 bg-slate-800/50 hover:bg-slate-700 rounded-full text-slate-400 hover:text-white transition-all z-50"
             >
               <X className="w-6 h-6 md:w-8 md:h-8" />
@@ -777,22 +786,6 @@ export default function App() {
           </div>
         </div>
       )}
-
-      {/* Temporary Test Button */}
-      <div className="fixed bottom-4 left-4 z-50 flex gap-2 opacity-50 hover:opacity-100 transition-opacity">
-        <button 
-          onClick={() => { setPopupType('iftar'); setShowCountdownPopup(true); }}
-          className="bg-slate-800 text-xs px-3 py-1 rounded border border-slate-700 text-slate-400"
-        >
-          Test Iftar Popup
-        </button>
-        <button 
-          onClick={() => { setPopupType('suhoor'); setShowCountdownPopup(true); }}
-          className="bg-slate-800 text-xs px-3 py-1 rounded border border-slate-700 text-slate-400"
-        >
-          Test Sehri Popup
-        </button>
-      </div>
 
       {showDonate && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
