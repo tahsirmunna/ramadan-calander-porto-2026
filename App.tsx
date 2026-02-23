@@ -721,28 +721,28 @@ export default function App() {
 
       {showCountdownPopup && popupType && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/95 backdrop-blur-3xl animate-in fade-in duration-300 overflow-y-auto">
-          <div className="min-h-full w-full flex items-center justify-center p-4 py-12">
+          <div className="min-h-full w-full flex items-center justify-center p-4 py-8 md:py-12">
             <button 
               onClick={() => { setShowCountdownPopup(false); setPopupType(null); }}
-              className="fixed top-4 right-4 md:top-6 md:right-6 p-3 md:p-4 bg-slate-800/50 hover:bg-slate-700 rounded-full text-slate-400 hover:text-white transition-all z-50"
+              className="fixed top-4 right-4 md:top-6 md:right-6 p-2 md:p-4 bg-slate-800/50 hover:bg-slate-700 rounded-full text-slate-400 hover:text-white transition-all z-50"
             >
               <X className="w-6 h-6 md:w-8 md:h-8" />
             </button>
             
             <div className="flex flex-col items-center justify-center text-center w-full max-w-4xl relative">
-              <div className={`mb-4 md:mb-8 p-4 md:p-6 rounded-full ${popupType === 'iftar' ? 'bg-orange-500/10' : 'bg-emerald-500/10'}`}>
+              <div className={`mb-3 md:mb-8 p-3 md:p-6 rounded-full ${popupType === 'iftar' ? 'bg-orange-500/10' : 'bg-emerald-500/10'}`}>
                 {popupType === 'iftar' ? (
-                  <Moon className="w-12 h-12 md:w-24 md:h-24 text-orange-500 animate-pulse" />
+                  <Moon className="w-8 h-8 md:w-24 md:h-24 text-orange-500 animate-pulse" />
                 ) : (
-                  <Sun className="w-12 h-12 md:w-24 md:h-24 text-emerald-400 animate-pulse" />
+                  <Sun className="w-8 h-8 md:w-24 md:h-24 text-emerald-400 animate-pulse" />
                 )}
               </div>
               
-              <h2 className={`text-xl md:text-4xl font-black uppercase tracking-[0.2em] mb-2 md:mb-4 ${popupType === 'iftar' ? 'text-orange-500' : 'text-emerald-400'}`}>
+              <h2 className={`text-lg md:text-4xl font-black uppercase tracking-[0.2em] mb-2 md:mb-4 ${popupType === 'iftar' ? 'text-orange-500' : 'text-emerald-400'}`}>
                 {popupType === 'iftar' ? t.iftarRemaining : t.suhoorRemaining}
               </h2>
               
-              <div className="mb-6 md:mb-12 w-full flex justify-center">
+              <div className="mb-4 md:mb-12 w-full flex justify-center">
                 <span className={`text-[15vw] md:text-[13vw] lg:text-[10rem] font-black leading-none font-mono tracking-tight ${popupType === 'iftar' ? 'text-white drop-shadow-[0_0_30px_rgba(249,115,22,0.5)]' : 'text-white drop-shadow-[0_0_30px_rgba(52,211,153,0.5)]'}`}>
                   {popupType === 'iftar' 
                     ? getCountdown(currentData.iftar, currentData.date) 
@@ -750,7 +750,7 @@ export default function App() {
                 </span>
               </div>
               
-              <div className="flex flex-col items-center gap-1 md:gap-2 bg-slate-900/50 p-4 md:p-6 rounded-3xl border border-slate-800 mb-6 md:mb-8">
+              <div className="flex flex-col items-center gap-1 md:gap-2 bg-slate-900/50 p-3 md:p-6 rounded-2xl md:rounded-3xl border border-slate-800 mb-4 md:mb-8">
                 <span className="text-[10px] md:text-sm font-bold text-slate-500 uppercase tracking-widest">
                   {popupType === 'iftar' ? t.iftar : t.suhoor}
                 </span>
@@ -764,13 +764,13 @@ export default function App() {
                 </span>
               </div>
 
-              <div className="w-full max-w-xl mx-auto rounded-2xl overflow-hidden shadow-2xl border border-slate-700/50">
+              <div className="w-full max-w-xl mx-auto rounded-xl md:rounded-2xl overflow-hidden shadow-2xl border border-slate-700/50">
                 <img 
                   src={popupType === 'iftar' 
                     ? "https://www.prayertimenyc.com/wp-content/uploads/2017/05/iftar-dua.jpg" 
                     : "https://i.pinimg.com/736x/f8/71/ff/f871ff145c4d10a48382032f66097b36.jpg"}
                   alt={popupType === 'iftar' ? "Iftar Dua" : "Suhoor Dua"}
-                  className="w-full h-auto"
+                  className="w-full h-auto max-h-[30vh] md:max-h-none object-contain bg-slate-900"
                 />
               </div>
             </div>
