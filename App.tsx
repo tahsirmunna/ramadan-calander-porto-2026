@@ -66,7 +66,7 @@ export default function App() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isPreviewing, setIsPreviewing] = useState<boolean>(false);
+  const [isAudioPlaying, setIsAudioPlaying] = useState<boolean>(false);
   const [showFullCalendar, setShowFullCalendar] = useState(false);
   const [showDonate, setShowDonate] = useState(false);
   const [showCopied, setShowCopied] = useState(false);
@@ -74,9 +74,41 @@ export default function App() {
   const [showCountdownPopup, setShowCountdownPopup] = useState(false);
   const [popupType, setPopupType] = useState<'suhoor' | 'iftar' | null>(null);
   const [lastPopupClosedTime, setLastPopupClosedTime] = useState<number | null>(null);
+  const wakeLockRef = useRef<any>(null);
 
   const t = TRANSLATIONS[settings.language] || TRANSLATIONS[Language.EN];
   const isBengali = settings.language === Language.BN;
+
+  const requestWakeLock = async () => {
+    if ('wakeLock' in navigator) {
+      try {
+        wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
+        console.log('Wake Lock is active');
+      } catch (err: any) {
+        console.error(`${err.name}, ${err.message}`);
+      }
+    }
+  };
+
+  useEffect(() => {
+    requestWakeLock();
+    
+    const handleVisibilityChange = async () => {
+      if (wakeLockRef.current !== null && document.visibilityState === 'visible') {
+        await requestWakeLock();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (wakeLockRef.current) {
+        wakeLockRef.current.release();
+        wakeLockRef.current = null;
+      }
+    };
+  }, []);
   
   const audioContextRef = useRef<AudioContext | null>(null);
   const adhanBufferRef = useRef<AudioBuffer | null>(null);
@@ -228,14 +260,23 @@ export default function App() {
     return () => clearInterval(timer);
   }, [settings, currentDayIndex, showCountdownPopup, popupType, lastPopupClosedTime]);
 
+  const lastAlarmFiredRef = useRef<string | null>(null);
+
   const checkAlarms = (now: Date) => {
-    const todayData = CALENDAR_DATA[currentDayIndex];
-    if (!todayData) return;
     const timeStr = now.toTimeString().slice(0, 5);
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const alarmKey = `${todayStr}-${timeStr}`;
+
+    // Find actual today's data for alarms
+    const actualTodayData = CALENDAR_DATA.find(d => d.date === todayStr);
     
-    // Check for 15 minutes remaining
+    // Use currentDayIndex data for UI-related popup logic
+    const uiData = CALENDAR_DATA[currentDayIndex];
+    if (!uiData) return;
+    
+    // Check for 15 minutes remaining (Popup logic)
     const checkFifteenMinutesLeft = (targetTimeStr: string, type: 'suhoor' | 'iftar') => {
-      if (!isTodayDate(todayData.date)) return;
+      if (!isTodayDate(uiData.date)) return;
       
       const [h, m] = targetTimeStr.split(':').map(Number);
       const targetDate = new Date();
@@ -248,17 +289,12 @@ export default function App() {
         setShowCountdownPopup(false);
         setPopupType(null);
       } else if (minutesLeft <= 15 && minutesLeft >= 0 && !showCountdownPopup) {
-         // Auto-open logic:
-         // 1. If exactly 15 mins left (and seconds 0 to avoid spam), open it.
-         // 2. If within 15 mins but closed, check if 5 mins passed since close.
-         
          const timeSinceClose = lastPopupClosedTime ? now.getTime() - lastPopupClosedTime : Infinity;
          
          if (minutesLeft === 15 && now.getSeconds() === 0) {
             setPopupType(type);
             setShowCountdownPopup(true);
          } else if (timeSinceClose >= 5 * 60 * 1000) {
-            // Re-open if 5 mins passed since close and we are still in the window
             setPopupType(type);
             setShowCountdownPopup(true);
             setLastPopupClosedTime(Date.now()); 
@@ -266,15 +302,21 @@ export default function App() {
       }
     };
 
-    checkFifteenMinutesLeft(todayData.iftar, 'iftar');
-    checkFifteenMinutesLeft(todayData.suhoor, 'suhoor');
+    checkFifteenMinutesLeft(uiData.iftar, 'iftar');
+    checkFifteenMinutesLeft(uiData.suhoor, 'suhoor');
 
-    if (settings.iftarAlarmEnabled && timeStr === todayData.iftar && now.getSeconds() === 0 && isTodayDate(todayData.date)) {
-      playAdhan();
-    }
-    
-    if (settings.suhoorAlarmEnabled && timeStr === todayData.suhoor && now.getSeconds() === 0 && isTodayDate(todayData.date)) {
-      playAdhan();
+    // Alarm logic - triggers once per minute
+    if (actualTodayData && lastAlarmFiredRef.current !== alarmKey) {
+      const isIftarTime = timeStr === actualTodayData.iftar;
+      const isSuhoorTime = timeStr === actualTodayData.suhoor;
+
+      if (settings.iftarAlarmEnabled && isIftarTime) {
+        playAdhan();
+        lastAlarmFiredRef.current = alarmKey;
+      } else if (settings.suhoorAlarmEnabled && isSuhoorTime) {
+        playAdhan();
+        lastAlarmFiredRef.current = alarmKey;
+      }
     }
   };
 
@@ -287,17 +329,17 @@ export default function App() {
       adhanAudioFallbackRef.current.pause();
       adhanAudioFallbackRef.current.currentTime = 0;
     }
-    setIsPreviewing(false);
+    setIsAudioPlaying(false);
   };
 
   const playAdhan = async (isPreview = false) => {
-    if (isPreview && isPreviewing) { 
+    if (isAudioPlaying) { 
       stopCurrentAudio(); 
       return; 
     }
     
     stopCurrentAudio();
-    if (isPreview) setIsPreviewing(true);
+    setIsAudioPlaying(true);
     
     const ctx = await getAudioContext();
     if (adhanBufferRef.current) {
@@ -307,18 +349,18 @@ export default function App() {
       gainNode.gain.value = settings.voiceVolume;
       source.connect(gainNode);
       gainNode.connect(ctx.destination);
-      source.onended = () => setIsPreviewing(false);
+      source.onended = () => setIsAudioPlaying(false);
       source.start();
       currentSourceRef.current = source;
     } else {
       const audio = adhanAudioFallbackRef.current || new Audio(ADHAN_URL);
       audio.volume = settings.voiceVolume;
-      audio.onended = () => setIsPreviewing(false);
+      audio.onended = () => setIsAudioPlaying(false);
       try {
         await audio.play();
       } catch (err) {
         audio.src = ADHAN_FALLBACK_URL;
-        try { await audio.play(); } catch(e) { setIsPreviewing(false); }
+        try { await audio.play(); } catch(e) { setIsAudioPlaying(false); }
       }
     }
   };
@@ -720,9 +762,9 @@ export default function App() {
               <div className="grid grid-cols-1 gap-4">
                 <button 
                   onClick={() => playAdhan(true)}
-                  className={`w-full p-6 rounded-[2rem] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-4 ${isPreviewing ? 'bg-amber-500 text-slate-950 scale-[0.98]' : 'bg-slate-800 text-slate-200 hover:bg-slate-700 shadow-xl border border-slate-700/50'}`}
+                  className={`w-full p-6 rounded-[2rem] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-4 ${isAudioPlaying ? 'bg-amber-500 text-slate-950 scale-[0.98]' : 'bg-slate-800 text-slate-200 hover:bg-slate-700 shadow-xl border border-slate-700/50'}`}
                 >
-                  {isPreviewing ? <VolumeX className="w-6 h-6" /> : <Play className="w-6 h-6 text-amber-500" />}
+                  {isAudioPlaying ? <VolumeX className="w-6 h-6" /> : <Play className="w-6 h-6 text-amber-500" />}
                   <span className={isBengali ? 'text-lg font-bengali-bold' : ''}>{t.listenAdhan}</span>
                 </button>
               </div>
@@ -742,6 +784,18 @@ export default function App() {
             </button>
             
             <div className="flex flex-col items-center justify-center text-center w-full max-w-4xl relative">
+              <div className="flex items-center gap-2 mb-6 md:mb-10 bg-slate-900/40 p-1.5 rounded-2xl border border-slate-800/50 backdrop-blur-md">
+                {(Object.values(Language) as Language[]).map(lang => (
+                  <button 
+                    key={lang} 
+                    onClick={() => setSettings(s => ({...s, language: lang}))}
+                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${settings.language === lang ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20' : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700'}`}
+                  >
+                    {lang === Language.EN ? 'EN' : lang === Language.BN ? 'বাংলা' : 'PT'}
+                  </button>
+                ))}
+              </div>
+
               <div className={`mb-3 md:mb-8 p-3 md:p-6 rounded-full ${popupType === 'iftar' ? 'bg-orange-500/10' : 'bg-emerald-500/10'}`}>
                 {popupType === 'iftar' ? (
                   <Moon className="w-8 h-8 md:w-24 md:h-24 text-orange-500 animate-pulse" />
@@ -775,6 +829,16 @@ export default function App() {
                   }
                 </span>
               </div>
+
+              {isAudioPlaying && (
+                <button 
+                  onClick={() => stopCurrentAudio()}
+                  className="mb-8 flex items-center gap-3 bg-rose-500 hover:bg-rose-600 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest shadow-2xl shadow-rose-500/20 transition-all animate-bounce"
+                >
+                  <VolumeX className="w-6 h-6" />
+                  {t.stopAlarm || "Stop Alarm"}
+                </button>
+              )}
 
               <div className="w-full max-w-xl mx-auto rounded-xl md:rounded-2xl overflow-hidden shadow-2xl border border-slate-700/50">
                 <img 
