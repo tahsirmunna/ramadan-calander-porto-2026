@@ -80,6 +80,7 @@ export const TRANSLATIONS: Record<Language, any> = {
     showCounter: "Show Counter",
     suhoorCounter: "Suhoor Counter",
     iftarCounter: "Iftar Counter",
+    iftarMessage: "This is a precious time for Dua to be accepted by Allah. Please keep me and my family in your prayers during Iftar. Jazakallahu Khayran.",
     periods: {
       dawn: "Dawn", morning: "Morning", noon: "Noon", afternoon: "Afternoon", evening: "Evening", night: "Night"
     },
@@ -134,6 +135,7 @@ export const TRANSLATIONS: Record<Language, any> = {
     showCounter: "কাউন্টার দেখুন",
     suhoorCounter: "সেহরি কাউন্টার",
     iftarCounter: "ইফতার কাউন্টার",
+    iftarMessage: "ইফতারের এই সময়টি মহান আল্লাহর কাছে দোয়া কবুলের এক বিশেষ মুহূর্ত। অনুগ্রহ করে আপনার ইফতারের দোয়ায় আমাকে এবং আমার পরিবারকে স্মরণ করবেন। জাযাকাল্লাহু খায়রান।",
     periods: {
       dawn: "ভোর", morning: "সকাল", noon: "দুপুর", afternoon: "বিকেল", evening: "সন্ধ্যা", night: "রাত"
     },
@@ -188,6 +190,7 @@ export const TRANSLATIONS: Record<Language, any> = {
     showCounter: "Mostrar Contador",
     suhoorCounter: "Contador Suhur",
     iftarCounter: "Contador Iftar",
+    iftarMessage: "Este é um momento precioso para que as súplicas (Dua) sejam aceites por Allah. Por favor, lembre-se de mim e da minha família nas suas orações durante o Iftar. Jazakallahu Khayran.",
     periods: {
       dawn: "Madrugada", morning: "Manhã", noon: "Meio-dia", afternoon: "Tarde", evening: "Noite", night: "Noite"
     },

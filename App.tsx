@@ -80,21 +80,31 @@ export default function App() {
   const isBengali = settings.language === Language.BN;
 
   const requestWakeLock = async () => {
-    if ('wakeLock' in navigator) {
+    if ('wakeLock' in navigator && !wakeLockRef.current) {
       try {
         wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
+        
+        wakeLockRef.current.addEventListener('release', () => {
+          wakeLockRef.current = null;
+          console.log('Wake Lock was released');
+        });
+        
         console.log('Wake Lock is active');
       } catch (err: any) {
-        console.error(`${err.name}, ${err.message}`);
+        // Silently handle permission policy errors as they might be platform-restricted
+        if (err.name !== 'NotAllowedError') {
+          console.error(`${err.name}, ${err.message}`);
+        }
       }
     }
   };
 
   useEffect(() => {
+    // Attempt on mount
     requestWakeLock();
     
     const handleVisibilityChange = async () => {
-      if (wakeLockRef.current !== null && document.visibilityState === 'visible') {
+      if (document.visibilityState === 'visible') {
         await requestWakeLock();
       }
     };
@@ -464,7 +474,7 @@ export default function App() {
   };
 
   return (
-    <div className={`min-h-screen text-slate-100 flex flex-col items-center p-4 md:p-8 transition-all duration-700 ${isBengali ? 'font-bengali' : ''}`} onClick={() => getAudioContext()}>
+    <div className={`min-h-screen text-slate-100 flex flex-col items-center p-4 md:p-8 transition-all duration-700 ${isBengali ? 'font-bengali' : ''}`} onClick={() => { getAudioContext(); requestWakeLock(); }}>
       
       <div className="absolute top-0 left-0 w-full flex justify-between px-10 pointer-events-none opacity-40 md:opacity-100">
         <Lantern className="float-animation" />
@@ -774,53 +784,54 @@ export default function App() {
       )}
 
       {showCountdownPopup && popupType && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/95 backdrop-blur-3xl animate-in fade-in duration-300 overflow-y-auto">
-          <div className="min-h-full w-full flex items-center justify-center p-4 py-8 md:py-12">
+        <div className="fixed inset-0 z-[200] bg-slate-950/95 backdrop-blur-3xl animate-in fade-in duration-300 overflow-y-auto">
+          <div className="min-h-screen w-full flex flex-col items-center p-4 py-12 md:p-12">
             <button 
               onClick={() => { setShowCountdownPopup(false); setPopupType(null); setLastPopupClosedTime(Date.now()); }}
-              className="fixed top-4 right-4 md:top-6 md:right-6 p-2 md:p-4 bg-slate-800/50 hover:bg-slate-700 rounded-full text-slate-400 hover:text-white transition-all z-50"
+              className="fixed top-4 right-4 p-2 md:p-4 bg-slate-800/50 hover:bg-slate-700 rounded-full text-slate-400 hover:text-white transition-all z-[210]"
             >
               <X className="w-6 h-6 md:w-8 md:h-8" />
             </button>
             
-            <div className="flex flex-col items-center justify-center text-center w-full max-w-4xl relative">
-              <div className="flex items-center gap-2 mb-6 md:mb-10 bg-slate-900/40 p-1.5 rounded-2xl border border-slate-800/50 backdrop-blur-md">
+            <div className="flex flex-col items-center w-full max-w-4xl">
+              {/* Language Switcher - Compact on mobile */}
+              <div className="flex items-center gap-1.5 mb-6 md:mb-10 bg-slate-900/40 p-1 rounded-xl border border-slate-800/50 backdrop-blur-md">
                 {(Object.values(Language) as Language[]).map(lang => (
                   <button 
                     key={lang} 
                     onClick={() => setSettings(s => ({...s, language: lang}))}
-                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${settings.language === lang ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20' : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700'}`}
+                    className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all ${settings.language === lang ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20' : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700'}`}
                   >
                     {lang === Language.EN ? 'EN' : lang === Language.BN ? 'বাংলা' : 'PT'}
                   </button>
                 ))}
               </div>
 
-              <div className={`mb-3 md:mb-8 p-3 md:p-6 rounded-full ${popupType === 'iftar' ? 'bg-orange-500/10' : 'bg-emerald-500/10'}`}>
+              <div className={`mb-4 md:mb-8 p-3 md:p-6 rounded-full ${popupType === 'iftar' ? 'bg-orange-500/10' : 'bg-emerald-500/10'}`}>
                 {popupType === 'iftar' ? (
-                  <Moon className="w-8 h-8 md:w-24 md:h-24 text-orange-500 animate-pulse" />
+                  <Moon className="w-10 h-10 md:w-20 md:h-20 text-orange-500 animate-pulse" />
                 ) : (
-                  <Sun className="w-8 h-8 md:w-24 md:h-24 text-emerald-400 animate-pulse" />
+                  <Sun className="w-10 h-10 md:w-20 md:h-20 text-emerald-400 animate-pulse" />
                 )}
               </div>
               
-              <h2 className={`text-lg md:text-4xl font-black uppercase tracking-[0.2em] mb-2 md:mb-4 ${popupType === 'iftar' ? 'text-orange-500' : 'text-emerald-400'}`}>
+              <h2 className={`text-base md:text-3xl font-black uppercase tracking-[0.2em] mb-2 md:mb-4 ${popupType === 'iftar' ? 'text-orange-500' : 'text-emerald-400'}`}>
                 {popupType === 'iftar' ? t.iftarRemaining : t.suhoorRemaining}
               </h2>
               
-              <div className="mb-4 md:mb-12 w-full flex justify-center">
-                <span className={`text-[15vw] md:text-[13vw] lg:text-[10rem] font-black leading-none font-mono tracking-tight ${popupType === 'iftar' ? 'text-white drop-shadow-[0_0_30px_rgba(249,115,22,0.5)]' : 'text-white drop-shadow-[0_0_30px_rgba(52,211,153,0.5)]'}`}>
+              <div className="mb-6 md:mb-12 w-full flex justify-center">
+                <span className={`text-[18vw] md:text-[12vw] lg:text-[10rem] font-black leading-none font-mono tracking-tighter ${popupType === 'iftar' ? 'text-white drop-shadow-[0_0_20px_rgba(249,115,22,0.4)]' : 'text-white drop-shadow-[0_0_20px_rgba(52,211,153,0.4)]'}`}>
                   {popupType === 'iftar' 
                     ? getCountdown(currentData.iftar, currentData.date) 
                     : getSuhoorCountdown()}
                 </span>
               </div>
               
-              <div className="flex flex-col items-center gap-1 md:gap-2 bg-slate-900/50 p-3 md:p-6 rounded-2xl md:rounded-3xl border border-slate-800 mb-4 md:mb-8">
-                <span className="text-[10px] md:text-sm font-bold text-slate-500 uppercase tracking-widest">
+              <div className="flex flex-col items-center gap-1 md:gap-2 bg-slate-900/50 p-4 md:p-6 rounded-2xl md:rounded-3xl border border-slate-800 mb-6 md:mb-10 w-full max-w-[280px] md:max-w-sm">
+                <span className="text-[9px] md:text-sm font-bold text-slate-500 uppercase tracking-widest">
                   {popupType === 'iftar' ? t.iftar : t.suhoor}
                 </span>
-                <span className="text-xl md:text-4xl font-black text-slate-300 font-mono">
+                <span className="text-2xl md:text-4xl font-black text-slate-300 font-mono">
                   {popupType === 'iftar' 
                     ? getTimeParts(currentData.iftar).time 
                     : (isAfterIftarToday() && currentDayIndex + 1 < CALENDAR_DATA.length 
@@ -833,20 +844,28 @@ export default function App() {
               {isAudioPlaying && (
                 <button 
                   onClick={() => stopCurrentAudio()}
-                  className="mb-8 flex items-center gap-3 bg-rose-500 hover:bg-rose-600 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest shadow-2xl shadow-rose-500/20 transition-all animate-bounce"
+                  className="mb-8 flex items-center gap-3 bg-rose-500 hover:bg-rose-600 text-white px-6 py-3 md:px-8 md:py-4 rounded-xl md:rounded-2xl text-xs md:text-base font-black uppercase tracking-widest shadow-2xl shadow-rose-500/20 transition-all animate-bounce"
                 >
-                  <VolumeX className="w-6 h-6" />
+                  <VolumeX className="w-5 h-5 md:w-6 md:h-6" />
                   {t.stopAlarm || "Stop Alarm"}
                 </button>
               )}
 
-              <div className="w-full max-w-xl mx-auto rounded-xl md:rounded-2xl overflow-hidden shadow-2xl border border-slate-700/50">
+              {popupType === 'iftar' && (
+                <div className="w-full max-w-xl mx-auto p-5 md:p-8 bg-orange-500/5 border border-orange-500/10 rounded-3xl backdrop-blur-sm mb-8">
+                  <p className={`text-xs md:text-lg text-orange-200/80 leading-relaxed italic text-center ${isBengali ? 'font-bengali' : ''}`}>
+                    "{t.iftarMessage}"
+                  </p>
+                </div>
+              )}
+
+              <div className="w-full max-w-lg mx-auto rounded-2xl overflow-hidden shadow-2xl border border-slate-700/50 mb-10">
                 <img 
                   src={popupType === 'iftar' 
                     ? "https://www.prayertimenyc.com/wp-content/uploads/2017/05/iftar-dua.jpg" 
                     : "https://i.pinimg.com/736x/f8/71/ff/f871ff145c4d10a48382032f66097b36.jpg"}
                   alt={popupType === 'iftar' ? "Iftar Dua" : "Suhoor Dua"}
-                  className="w-full h-auto max-h-[30vh] md:max-h-none object-contain bg-slate-900"
+                  className="w-full h-auto object-contain bg-slate-900"
                 />
               </div>
             </div>
