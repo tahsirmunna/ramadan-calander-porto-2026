@@ -27,7 +27,8 @@ import {
 import { Language, AppSettings } from './types';
 import { CALENDAR_DATA, TRANSLATIONS } from './constants';
 
-const ADHAN_URL = 'https://ia800203.us.archive.org/20/items/Adhan_201509/Adhan.mp3';
+const ADHAN_NORMAL_URL = 'https://ia800203.us.archive.org/20/items/Adhan_201509/Adhan.mp3';
+const ADHAN_FAJR_URL = 'https://www.islamcan.com/audio/adhan/azan2.mp3';
 const ADHAN_FALLBACK_URL = 'https://www.islamcan.com/audio/adhan/azan1.mp3';
 
 const Lantern = ({ className = "", style }: { className?: string; style?: React.CSSProperties }) => (
@@ -121,7 +122,8 @@ export default function App() {
   }, []);
   
   const audioContextRef = useRef<AudioContext | null>(null);
-  const adhanBufferRef = useRef<AudioBuffer | null>(null);
+  const adhanNormalBufferRef = useRef<AudioBuffer | null>(null);
+  const adhanFajrBufferRef = useRef<AudioBuffer | null>(null);
   const adhanAudioFallbackRef = useRef<HTMLAudioElement | null>(null);
   const currentSourceRef = useRef<AudioBufferSourceNode | null>(null);
 
@@ -206,19 +208,25 @@ export default function App() {
 
   useEffect(() => {
     const prefetchAdhan = async () => {
-      try {
-        const response = await fetch(ADHAN_URL);
-        if (!response.ok) throw new Error("Primary Adhan failed");
-        const arrayBuffer = await response.arrayBuffer();
-        const ctx = await getAudioContext();
-        const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
-        adhanBufferRef.current = audioBuffer;
-      } catch (err) {
-        // Adhan prefetch failed, falling back to element playback
-        adhanAudioFallbackRef.current = new Audio(ADHAN_URL);
-        adhanAudioFallbackRef.current.addEventListener('error', () => {
-           if (adhanAudioFallbackRef.current) adhanAudioFallbackRef.current.src = ADHAN_FALLBACK_URL;
-        });
+      const ctx = await getAudioContext();
+      
+      const loadBuffer = async (url: string) => {
+        try {
+          const response = await fetch(url);
+          if (!response.ok) throw new Error(`Adhan failed: ${url}`);
+          const arrayBuffer = await response.arrayBuffer();
+          return await ctx.decodeAudioData(arrayBuffer);
+        } catch (err) {
+          console.error(err);
+          return null;
+        }
+      };
+
+      adhanNormalBufferRef.current = await loadBuffer(ADHAN_NORMAL_URL);
+      adhanFajrBufferRef.current = await loadBuffer(ADHAN_FAJR_URL);
+
+      if (!adhanNormalBufferRef.current && !adhanFajrBufferRef.current) {
+        adhanAudioFallbackRef.current = new Audio(ADHAN_NORMAL_URL);
         adhanAudioFallbackRef.current.load();
       }
     };
@@ -295,9 +303,12 @@ export default function App() {
       const diff = targetDate.getTime() - now.getTime();
       const minutesLeft = Math.floor(diff / 60000);
       
-      if (diff <= 0 && showCountdownPopup && popupType === type) {
-        setShowCountdownPopup(false);
-        setPopupType(null);
+      if (diff <= 0) {
+        // If time reached, only close if audio is NOT playing
+        if (showCountdownPopup && popupType === type && !isAudioPlaying) {
+          setShowCountdownPopup(false);
+          setPopupType(null);
+        }
       } else if (minutesLeft <= 15 && minutesLeft >= 0 && !showCountdownPopup) {
          const timeSinceClose = lastPopupClosedTime ? now.getTime() - lastPopupClosedTime : Infinity;
          
@@ -321,10 +332,14 @@ export default function App() {
       const isSuhoorTime = timeStr === actualTodayData.suhoor;
 
       if (settings.iftarAlarmEnabled && isIftarTime) {
-        playAdhan();
+        playAdhan('normal');
+        setPopupType('iftar');
+        setShowCountdownPopup(true);
         lastAlarmFiredRef.current = alarmKey;
       } else if (settings.suhoorAlarmEnabled && isSuhoorTime) {
-        playAdhan();
+        playAdhan('fajr');
+        setPopupType('suhoor');
+        setShowCountdownPopup(true);
         lastAlarmFiredRef.current = alarmKey;
       }
     }
@@ -342,8 +357,8 @@ export default function App() {
     setIsAudioPlaying(false);
   };
 
-  const playAdhan = async (isPreview = false) => {
-    if (isAudioPlaying) { 
+  const playAdhan = async (type: 'normal' | 'fajr' = 'normal', isPreview = false) => {
+    if (isAudioPlaying && isPreview) { 
       stopCurrentAudio(); 
       return; 
     }
@@ -352,9 +367,12 @@ export default function App() {
     setIsAudioPlaying(true);
     
     const ctx = await getAudioContext();
-    if (adhanBufferRef.current) {
+    const buffer = type === 'fajr' ? adhanFajrBufferRef.current : adhanNormalBufferRef.current;
+    const url = type === 'fajr' ? ADHAN_FAJR_URL : ADHAN_NORMAL_URL;
+
+    if (buffer) {
       const source = ctx.createBufferSource();
-      source.buffer = adhanBufferRef.current;
+      source.buffer = buffer;
       const gainNode = ctx.createGain();
       gainNode.gain.value = settings.voiceVolume;
       source.connect(gainNode);
@@ -363,7 +381,7 @@ export default function App() {
       source.start();
       currentSourceRef.current = source;
     } else {
-      const audio = adhanAudioFallbackRef.current || new Audio(ADHAN_URL);
+      const audio = new Audio(url);
       audio.volume = settings.voiceVolume;
       audio.onended = () => setIsAudioPlaying(false);
       try {
@@ -771,7 +789,7 @@ export default function App() {
 
               <div className="grid grid-cols-1 gap-4">
                 <button 
-                  onClick={() => playAdhan(true)}
+                  onClick={() => playAdhan('normal', true)}
                   className={`w-full p-6 rounded-[2rem] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-4 ${isAudioPlaying ? 'bg-amber-500 text-slate-950 scale-[0.98]' : 'bg-slate-800 text-slate-200 hover:bg-slate-700 shadow-xl border border-slate-700/50'}`}
                 >
                   {isAudioPlaying ? <VolumeX className="w-6 h-6" /> : <Play className="w-6 h-6 text-amber-500" />}
