@@ -122,9 +122,8 @@ export default function App() {
   }, []);
   
   const audioContextRef = useRef<AudioContext | null>(null);
-  const adhanNormalBufferRef = useRef<AudioBuffer | null>(null);
-  const adhanFajrBufferRef = useRef<AudioBuffer | null>(null);
   const adhanAudioFallbackRef = useRef<HTMLAudioElement | null>(null);
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
   const currentSourceRef = useRef<AudioBufferSourceNode | null>(null);
 
   const formatValue = (value: string | number) => {
@@ -207,28 +206,19 @@ export default function App() {
   };
 
   useEffect(() => {
-    const prefetchAdhan = async () => {
-      const ctx = await getAudioContext();
+    const prefetchAdhan = () => {
+      // Use Audio elements for preloading to avoid CORS fetch issues
+      const normalAudio = new Audio(ADHAN_NORMAL_URL);
+      normalAudio.preload = 'auto';
+      normalAudio.load();
       
-      const loadBuffer = async (url: string) => {
-        try {
-          const response = await fetch(url);
-          if (!response.ok) throw new Error(`Adhan failed: ${url}`);
-          const arrayBuffer = await response.arrayBuffer();
-          return await ctx.decodeAudioData(arrayBuffer);
-        } catch (err) {
-          console.error(err);
-          return null;
-        }
-      };
-
-      adhanNormalBufferRef.current = await loadBuffer(ADHAN_NORMAL_URL);
-      adhanFajrBufferRef.current = await loadBuffer(ADHAN_FAJR_URL);
-
-      if (!adhanNormalBufferRef.current && !adhanFajrBufferRef.current) {
-        adhanAudioFallbackRef.current = new Audio(ADHAN_NORMAL_URL);
-        adhanAudioFallbackRef.current.load();
-      }
+      const fajrAudio = new Audio(ADHAN_FAJR_URL);
+      fajrAudio.preload = 'auto';
+      fajrAudio.load();
+      
+      const fallbackAudio = new Audio(ADHAN_FALLBACK_URL);
+      fallbackAudio.preload = 'auto';
+      fallbackAudio.load();
     };
     setTimeout(prefetchAdhan, 2000);
   }, []);
@@ -350,6 +340,11 @@ export default function App() {
       try { currentSourceRef.current.stop(); } catch(e) {}
       currentSourceRef.current = null;
     }
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause();
+      currentAudioRef.current.currentTime = 0;
+      currentAudioRef.current = null;
+    }
     if (adhanAudioFallbackRef.current) {
       adhanAudioFallbackRef.current.pause();
       adhanAudioFallbackRef.current.currentTime = 0;
@@ -366,29 +361,22 @@ export default function App() {
     stopCurrentAudio();
     setIsAudioPlaying(true);
     
-    const ctx = await getAudioContext();
-    const buffer = type === 'fajr' ? adhanFajrBufferRef.current : adhanNormalBufferRef.current;
     const url = type === 'fajr' ? ADHAN_FAJR_URL : ADHAN_NORMAL_URL;
+    const audio = new Audio(url);
+    audio.volume = settings.voiceVolume;
+    audio.onended = () => setIsAudioPlaying(false);
+    currentAudioRef.current = audio;
 
-    if (buffer) {
-      const source = ctx.createBufferSource();
-      source.buffer = buffer;
-      const gainNode = ctx.createGain();
-      gainNode.gain.value = settings.voiceVolume;
-      source.connect(gainNode);
-      gainNode.connect(ctx.destination);
-      source.onended = () => setIsAudioPlaying(false);
-      source.start();
-      currentSourceRef.current = source;
-    } else {
-      const audio = new Audio(url);
-      audio.volume = settings.voiceVolume;
-      audio.onended = () => setIsAudioPlaying(false);
-      try {
-        await audio.play();
-      } catch (err) {
-        audio.src = ADHAN_FALLBACK_URL;
-        try { await audio.play(); } catch(e) { setIsAudioPlaying(false); }
+    try {
+      await audio.play();
+    } catch (err) {
+      console.error("Primary Adhan playback failed, trying fallback", err);
+      audio.src = ADHAN_FALLBACK_URL;
+      try { 
+        await audio.play(); 
+      } catch(e) { 
+        setIsAudioPlaying(false); 
+        currentAudioRef.current = null;
       }
     }
   };
