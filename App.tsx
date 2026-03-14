@@ -877,21 +877,13 @@ export default function App() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-4">
                 <button 
                   onClick={() => playAdhan('normal', true)}
                   className={`w-full p-4 md:p-6 rounded-2xl md:rounded-[2rem] font-black uppercase tracking-widest md:tracking-[0.2em] transition-all flex items-center justify-center gap-3 md:gap-4 ${isAudioPlaying ? 'bg-amber-500 text-slate-950 scale-[0.98]' : 'bg-slate-800 text-slate-200 hover:bg-slate-700 shadow-xl border border-slate-700/50'}`}
                 >
                   {isAudioPlaying ? <VolumeX className="w-5 h-5 md:w-6 md:h-6" /> : <Play className="w-5 h-5 md:w-6 md:h-6 text-amber-500" />}
                   <span className={isBengali ? 'text-sm md:text-lg font-bengali-bold' : 'text-xs md:text-base'}>{t.listenAdhan}</span>
-                </button>
-
-                <button 
-                  onClick={() => { setIsSettingsOpen(false); setTimeout(() => playAdhan('normal', false), 500); }}
-                  className="w-full p-4 md:p-6 rounded-2xl md:rounded-[2rem] bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30 font-black uppercase tracking-widest md:tracking-[0.2em] transition-all flex items-center justify-center gap-3 md:gap-4"
-                >
-                  <Sparkles className="w-5 h-5 md:w-6 md:h-6" />
-                  <span className={isBengali ? 'text-sm md:text-lg font-bengali-bold' : 'text-xs md:text-base'}>Test Alarm Flow</span>
                 </button>
               </div>
             </div>
