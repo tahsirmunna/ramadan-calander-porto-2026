@@ -1012,9 +1012,10 @@ export default function App() {
                     href={t.eidScheduleData.mapsLink} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="text-[10px] md:text-xs font-mono text-amber-100 hover:text-amber-500 transition-colors break-all text-left"
+                    className="flex items-center gap-2 text-[10px] md:text-xs font-mono text-amber-100 hover:text-amber-500 transition-colors break-all text-left group/map"
                   >
-                    {t.eidScheduleData.address}
+                    <MapPin className="w-4 h-4 text-amber-500 shrink-0 group-hover/map:scale-110 transition-transform" />
+                    <span>{t.eidScheduleData.address}</span>
                   </a>
                   <button onClick={() => handleCopy(t.eidScheduleData.address, "eid-addr")} className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-500 transition-colors relative shrink-0">
                     {copiedField === "eid-addr" ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
