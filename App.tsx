@@ -279,7 +279,7 @@ export default function App() {
     return () => clearInterval(timer);
   }, [settings, currentDayIndex, showCountdownPopup, popupType, lastPopupClosedTime, isAudioPlaying]);
 
-  const lastAlarmFiredRef = useRef<string | null>(null);
+  const lastAlarmFiredRef = useRef<string | null>(localStorage.getItem('lastAlarmFiredId'));
 
   const checkAlarms = (now: Date) => {
     const timeStr = now.toTimeString().slice(0, 5);
@@ -346,11 +346,13 @@ export default function App() {
         setPopupType('iftar');
         setShowCountdownPopup(true);
         lastAlarmFiredRef.current = alarmKey;
+        localStorage.setItem('lastAlarmFiredId', alarmKey);
       } else if (settings.suhoorAlarmEnabled && isSuhoorTime) {
         playAdhan('fajr');
         setPopupType('suhoor');
         setShowCountdownPopup(true);
         lastAlarmFiredRef.current = alarmKey;
+        localStorage.setItem('lastAlarmFiredId', alarmKey);
       }
     }
   };
@@ -634,6 +636,19 @@ export default function App() {
               </>
             )}
           </div>
+
+          {isAudioPlaying && (
+            <>
+              <div className="w-px h-6 bg-slate-800/50 mx-1"></div>
+              <button 
+                onClick={() => stopCurrentAudio()} 
+                className="p-3 rounded-xl bg-red-500/20 text-red-500 hover:bg-red-500/30 transition-all flex items-center gap-2 animate-pulse"
+              >
+                <VolumeX className="w-5 h-5" />
+                <span className="hidden md:inline text-[10px] font-black uppercase tracking-widest">{t.stopAlarm}</span>
+              </button>
+            </>
+          )}
         </div>
 
         <button 
