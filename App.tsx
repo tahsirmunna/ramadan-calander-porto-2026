@@ -27,8 +27,16 @@ import {
 import { Language, AppSettings } from './types';
 import { CALENDAR_DATA, TRANSLATIONS } from './constants';
 
-const ADHAN_NORMAL_URL = 'https://ia800203.us.archive.org/20/items/Adhan_201509/Adhan.mp3';
-const ADHAN_FAJR_URL = 'https://www.islamcan.com/audio/adhan/azan2.mp3';
+const ADHAN_NORMAL_URLS = [
+  'https://ia800203.us.archive.org/20/items/Adhan_201509/Adhan.mp3',
+  'https://www.islamcan.com/audio/adhan/azan20.mp3',
+  'https://ia801300.us.archive.org/19/items/Adhan_Makkah/Adhan_Makkah.mp3'
+];
+const ADHAN_FAJR_URLS = [
+  'https://www.islamcan.com/audio/adhan/azan2.mp3',
+  'https://ia800203.us.archive.org/20/items/Adhan_201509/Adhan.mp3',
+  'https://ia801300.us.archive.org/19/items/Adhan_Makkah/Adhan_Fajr.mp3'
+];
 const ADHAN_FALLBACK_URL = 'https://www.islamcan.com/audio/adhan/azan1.mp3';
 
 const Lantern = ({ className = "", style }: { className?: string; style?: React.CSSProperties }) => (
@@ -73,6 +81,7 @@ export default function App() {
   const [showCopied, setShowCopied] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [showCountdownPopup, setShowCountdownPopup] = useState(false);
+  const [showEidSchedule, setShowEidSchedule] = useState(false);
   const [popupType, setPopupType] = useState<'suhoor' | 'iftar' | null>(null);
   const [lastPopupClosedTime, setLastPopupClosedTime] = useState<number | null>(null);
   const wakeLockRef = useRef<any>(null);
@@ -122,9 +131,8 @@ export default function App() {
   }, []);
   
   const audioContextRef = useRef<AudioContext | null>(null);
-  const adhanAudioFallbackRef = useRef<HTMLAudioElement | null>(null);
-  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
-  const currentSourceRef = useRef<AudioBufferSourceNode | null>(null);
+  const adhanAudioRef = useRef<HTMLAudioElement | null>(null);
+  const playbackIdRef = useRef<number>(0);
 
   const formatValue = (value: string | number) => {
     const valStr = value.toString();
@@ -208,13 +216,16 @@ export default function App() {
   useEffect(() => {
     const prefetchAdhan = () => {
       // Use Audio elements for preloading to avoid CORS fetch issues
-      const normalAudio = new Audio(ADHAN_NORMAL_URL);
-      normalAudio.preload = 'auto';
-      normalAudio.load();
+      const preload = (urls: string[]) => {
+        urls.forEach(url => {
+          const audio = new Audio(url);
+          audio.preload = 'auto';
+          audio.load();
+        });
+      };
       
-      const fajrAudio = new Audio(ADHAN_FAJR_URL);
-      fajrAudio.preload = 'auto';
-      fajrAudio.load();
+      preload(ADHAN_NORMAL_URLS);
+      preload(ADHAN_FAJR_URLS);
       
       const fallbackAudio = new Audio(ADHAN_FALLBACK_URL);
       fallbackAudio.preload = 'auto';
@@ -266,7 +277,7 @@ export default function App() {
       checkAlarms(now);
     }, 1000);
     return () => clearInterval(timer);
-  }, [settings, currentDayIndex, showCountdownPopup, popupType, lastPopupClosedTime]);
+  }, [settings, currentDayIndex, showCountdownPopup, popupType, lastPopupClosedTime, isAudioPlaying]);
 
   const lastAlarmFiredRef = useRef<string | null>(null);
 
@@ -294,10 +305,19 @@ export default function App() {
       const minutesLeft = Math.floor(diff / 60000);
       
       if (diff <= 0) {
-        // If time reached, only close if audio is NOT playing
-        if (showCountdownPopup && popupType === type && !isAudioPlaying) {
-          setShowCountdownPopup(false);
-          setPopupType(null);
+        // If time reached, only close if audio is NOT playing AND we are past the alarm minute
+        // or if the alarm for this type is disabled.
+        const isAlarmEnabled = type === 'iftar' ? settings.iftarAlarmEnabled : settings.suhoorAlarmEnabled;
+        const isPastAlarmMinute = diff < -60000;
+        
+        if (showCountdownPopup && popupType === type) {
+          // CRITICAL: Never close the popup automatically if audio is playing
+          if (isAudioPlaying) return;
+
+          if (isPastAlarmMinute || !isAlarmEnabled) {
+            setShowCountdownPopup(false);
+            setPopupType(null);
+          }
         }
       } else if (minutesLeft <= 15 && minutesLeft >= 0 && !showCountdownPopup) {
          const timeSinceClose = lastPopupClosedTime ? now.getTime() - lastPopupClosedTime : Infinity;
@@ -335,21 +355,28 @@ export default function App() {
     }
   };
 
-  const stopCurrentAudio = () => {
-    if (currentSourceRef.current) {
-      try { currentSourceRef.current.stop(); } catch(e) {}
-      currentSourceRef.current = null;
+  const stopCurrentAudio = (keepPopup = false, willPlayNext = false) => {
+    playbackIdRef.current++;
+    
+    if (adhanAudioRef.current) {
+      const audio = adhanAudioRef.current;
+      audio.pause();
+      audio.src = "";
+      audio.removeAttribute('src');
+      try {
+        audio.load();
+      } catch (e) {}
     }
-    if (currentAudioRef.current) {
-      currentAudioRef.current.pause();
-      currentAudioRef.current.currentTime = 0;
-      currentAudioRef.current = null;
+
+    if (!willPlayNext) {
+      setIsAudioPlaying(false);
     }
-    if (adhanAudioFallbackRef.current) {
-      adhanAudioFallbackRef.current.pause();
-      adhanAudioFallbackRef.current.currentTime = 0;
+    
+    // Close popup when audio is stopped manually
+    if (!keepPopup) {
+      setShowCountdownPopup(false);
+      setPopupType(null);
     }
-    setIsAudioPlaying(false);
   };
 
   const playAdhan = async (type: 'normal' | 'fajr' = 'normal', isPreview = false) => {
@@ -358,27 +385,92 @@ export default function App() {
       return; 
     }
     
-    stopCurrentAudio();
     setIsAudioPlaying(true);
-    
-    const url = type === 'fajr' ? ADHAN_FAJR_URL : ADHAN_NORMAL_URL;
-    const audio = new Audio(url);
-    audio.volume = settings.voiceVolume;
-    audio.onended = () => setIsAudioPlaying(false);
-    currentAudioRef.current = audio;
+    stopCurrentAudio(true, true);
+    const currentPlaybackId = playbackIdRef.current;
 
-    try {
-      await audio.play();
-    } catch (err) {
-      console.error("Primary Adhan playback failed, trying fallback", err);
-      audio.src = ADHAN_FALLBACK_URL;
-      try { 
-        await audio.play(); 
-      } catch(e) { 
-        setIsAudioPlaying(false); 
-        currentAudioRef.current = null;
-      }
+    // If not a preview (actual alarm), ensure popup is shown
+    if (!isPreview) {
+      setPopupType(type === 'fajr' ? 'suhoor' : 'iftar');
+      setShowCountdownPopup(true);
     }
+    
+    const urls = type === 'fajr' ? ADHAN_FAJR_URLS : ADHAN_NORMAL_URLS;
+    const allUrls = [...urls, ADHAN_FALLBACK_URL];
+
+    if (!adhanAudioRef.current) {
+      adhanAudioRef.current = new Audio();
+    }
+    const audio = adhanAudioRef.current;
+    audio.volume = settings.voiceVolume;
+
+    const tryPlay = async (index: number): Promise<boolean> => {
+      if (currentPlaybackId !== playbackIdRef.current) return false;
+      if (index >= allUrls.length) {
+        setIsAudioPlaying(false);
+        if (!isPreview) {
+          setShowCountdownPopup(false);
+          setPopupType(null);
+        }
+        return false;
+      }
+
+      return new Promise((resolve) => {
+        const url = allUrls[index];
+        audio.src = url;
+        
+        const onEnded = () => {
+          cleanup();
+          if (currentPlaybackId !== playbackIdRef.current) {
+            resolve(false);
+            return;
+          }
+          setIsAudioPlaying(false);
+          if (!isPreview) {
+            setShowCountdownPopup(false);
+            setPopupType(null);
+          }
+          resolve(true);
+        };
+
+        const onError = async () => {
+          cleanup();
+          if (currentPlaybackId !== playbackIdRef.current) {
+            resolve(false);
+            return;
+          }
+          console.warn(`Adhan playback failed for ${url}, trying next...`);
+          resolve(await tryPlay(index + 1));
+        };
+
+        const cleanup = () => {
+          audio.removeEventListener('ended', onEnded);
+          audio.removeEventListener('error', onError);
+        };
+
+        audio.addEventListener('ended', onEnded);
+        audio.addEventListener('error', onError);
+
+        audio.play().then(() => {
+          if (currentPlaybackId !== playbackIdRef.current) {
+            audio.pause();
+            audio.src = "";
+            cleanup();
+            resolve(false);
+          }
+        }).catch(async (err) => {
+          cleanup();
+          if (currentPlaybackId !== playbackIdRef.current) {
+            resolve(false);
+            return;
+          }
+          console.warn(`Adhan play() failed for ${url}:`, err);
+          resolve(await tryPlay(index + 1));
+        });
+      });
+    };
+
+    await tryPlay(0);
   };
 
   const handleCopy = async (text: string, field: string) => {
@@ -513,7 +605,7 @@ export default function App() {
             {showFullCalendar ? <LayoutGrid className="w-5 h-5" /> : <List className="w-5 h-5" />}
             <span className="hidden md:inline text-[10px] font-black uppercase tracking-widest">{t.fullCalendar}</span>
           </button>
-          
+
           <div className="w-px h-6 bg-slate-800/50 mx-1"></div>
           
           <button onClick={() => setIsSettingsOpen(true)} className="p-3 rounded-xl hover:bg-slate-800/60 text-slate-400 hover:text-amber-500 transition-all flex items-center gap-2 group">
@@ -543,6 +635,16 @@ export default function App() {
             )}
           </div>
         </div>
+
+        <button 
+          onClick={() => setShowEidSchedule(true)} 
+          className="w-full max-w-4xl p-4 md:p-5 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-500 transition-all flex items-center justify-center gap-3 group shadow-lg shadow-amber-500/5"
+        >
+          <Maximize2 className="w-5 h-5 md:w-6 md:h-6 group-hover:scale-110 transition-transform" />
+          <span className={`text-xs md:text-base font-black uppercase tracking-[0.2em] ${isBengali ? 'font-bengali-bold' : ''}`}>
+            {t.eidSchedule}
+          </span>
+        </button>
       </header>
 
       <main className="w-full max-w-4xl z-10 flex flex-col gap-4 md:gap-8">
@@ -775,13 +877,21 @@ export default function App() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <button 
                   onClick={() => playAdhan('normal', true)}
-                  className={`w-full p-6 rounded-[2rem] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-4 ${isAudioPlaying ? 'bg-amber-500 text-slate-950 scale-[0.98]' : 'bg-slate-800 text-slate-200 hover:bg-slate-700 shadow-xl border border-slate-700/50'}`}
+                  className={`w-full p-4 md:p-6 rounded-2xl md:rounded-[2rem] font-black uppercase tracking-widest md:tracking-[0.2em] transition-all flex items-center justify-center gap-3 md:gap-4 ${isAudioPlaying ? 'bg-amber-500 text-slate-950 scale-[0.98]' : 'bg-slate-800 text-slate-200 hover:bg-slate-700 shadow-xl border border-slate-700/50'}`}
                 >
-                  {isAudioPlaying ? <VolumeX className="w-6 h-6" /> : <Play className="w-6 h-6 text-amber-500" />}
-                  <span className={isBengali ? 'text-lg font-bengali-bold' : ''}>{t.listenAdhan}</span>
+                  {isAudioPlaying ? <VolumeX className="w-5 h-5 md:w-6 md:h-6" /> : <Play className="w-5 h-5 md:w-6 md:h-6 text-amber-500" />}
+                  <span className={isBengali ? 'text-sm md:text-lg font-bengali-bold' : 'text-xs md:text-base'}>{t.listenAdhan}</span>
+                </button>
+
+                <button 
+                  onClick={() => { setIsSettingsOpen(false); setTimeout(() => playAdhan('normal', false), 500); }}
+                  className="w-full p-4 md:p-6 rounded-2xl md:rounded-[2rem] bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30 font-black uppercase tracking-widest md:tracking-[0.2em] transition-all flex items-center justify-center gap-3 md:gap-4"
+                >
+                  <Sparkles className="w-5 h-5 md:w-6 md:h-6" />
+                  <span className={isBengali ? 'text-sm md:text-lg font-bengali-bold' : 'text-xs md:text-base'}>Test Alarm Flow</span>
                 </button>
               </div>
             </div>
@@ -793,7 +903,7 @@ export default function App() {
         <div className="fixed inset-0 z-[200] bg-slate-950/95 backdrop-blur-3xl animate-in fade-in duration-300 overflow-y-auto">
           <div className="min-h-screen w-full flex flex-col items-center p-4 py-12 md:p-12">
             <button 
-              onClick={() => { setShowCountdownPopup(false); setPopupType(null); setLastPopupClosedTime(Date.now()); }}
+              onClick={() => { stopCurrentAudio(); setShowCountdownPopup(false); setPopupType(null); setLastPopupClosedTime(Date.now()); }}
               className="fixed top-4 right-4 p-2 md:p-4 bg-slate-800/50 hover:bg-slate-700 rounded-full text-slate-400 hover:text-white transition-all z-[210]"
             >
               <X className="w-6 h-6 md:w-8 md:h-8" />
@@ -827,9 +937,9 @@ export default function App() {
               
               <div className="mb-6 md:mb-12 w-full flex justify-center">
                 <span className={`text-[18vw] md:text-[12vw] lg:text-[10rem] font-black leading-none font-mono tracking-tighter ${popupType === 'iftar' ? 'text-white drop-shadow-[0_0_20px_rgba(249,115,22,0.4)]' : 'text-white drop-shadow-[0_0_20px_rgba(52,211,153,0.4)]'}`}>
-                  {popupType === 'iftar' 
+                  {(popupType === 'iftar' 
                     ? getCountdown(currentData.iftar, currentData.date) 
-                    : getSuhoorCountdown()}
+                    : getSuhoorCountdown()) || "00:00:00"}
                 </span>
               </div>
               
@@ -873,6 +983,72 @@ export default function App() {
                   alt={popupType === 'iftar' ? "Iftar Dua" : "Suhoor Dua"}
                   className="w-full h-auto object-contain bg-slate-900"
                 />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showEidSchedule && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-slate-950/95 backdrop-blur-xl" onClick={() => setShowEidSchedule(false)}></div>
+          <div className="bg-slate-900 border border-slate-700/50 w-full max-w-2xl rounded-[2.5rem] p-6 md:p-10 shadow-2xl relative z-[160] animate-in fade-in zoom-in duration-300 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-2xl md:text-3xl font-black text-amber-500">{t.eidSchedule}</h2>
+              <button onClick={() => setShowEidSchedule(false)} className="p-2 hover:bg-slate-800 rounded-full transition-colors"><X className="w-6 h-6 text-slate-400" /></button>
+            </div>
+            
+            <div className="space-y-8">
+              <div className="text-center space-y-2">
+                <h3 className="text-2xl md:text-4xl font-black text-white tracking-tight">{t.eidScheduleData.title}</h3>
+                <p className="text-amber-500 font-bold tracking-[0.15em] text-sm md:text-base uppercase">{t.eidScheduleData.location}</p>
+                <p className={`text-emerald-400 font-bold text-xs md:text-sm uppercase tracking-widest ${isBengali ? 'font-bengali' : ''}`}>{t.eidScheduleData.prayerLocation}</p>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest text-center">{t.eidScheduleData.addressLabel}</p>
+                <div className="flex items-center justify-between gap-4 bg-slate-900/50 p-3 rounded-xl border border-slate-800 max-w-md mx-auto">
+                  <a 
+                    href={t.eidScheduleData.mapsLink} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-[10px] md:text-xs font-mono text-amber-100 hover:text-amber-500 transition-colors break-all text-left"
+                  >
+                    {t.eidScheduleData.address}
+                  </a>
+                  <button onClick={() => handleCopy(t.eidScheduleData.address, "eid-addr")} className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-500 transition-colors relative shrink-0">
+                    {copiedField === "eid-addr" ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-slate-950/40 rounded-3xl border border-slate-800/50 p-6 md:p-8 space-y-6">
+                <div className="flex items-center justify-center py-3 border-b border-slate-800/50">
+                  <p className="text-xl md:text-2xl font-black text-emerald-400 font-mono">{t.eidScheduleData.fajr}</p>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3">
+                  {t.eidScheduleData.prayers.map((prayer: any, idx: number) => (
+                    <div key={idx} className="flex items-center justify-between p-4 bg-slate-900/50 rounded-2xl border border-slate-800 hover:border-amber-500/30 transition-colors group">
+                      <span className="text-xs md:text-sm font-bold text-slate-400 uppercase tracking-widest group-hover:text-slate-200">{prayer.label}</span>
+                      <span className="text-xl md:text-2xl font-black text-amber-500 font-mono">{prayer.time}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl">
+                  <p className={`text-xs md:text-sm text-amber-200/70 leading-relaxed text-center italic ${isBengali ? 'font-bengali' : ''}`}>
+                    {t.eidScheduleData.announcement}
+                  </p>
+                </div>
+                
+                <div className="p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl">
+                  <p className="text-[10px] md:text-xs font-black text-emerald-400 uppercase tracking-[0.2em] text-center">
+                    {t.eidScheduleData.fitra}
+                  </p>
+                </div>
               </div>
             </div>
           </div>

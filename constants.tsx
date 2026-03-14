@@ -76,6 +76,25 @@ export const TRANSLATIONS: Record<Language, any> = {
     swift: "SWIFT",
     copy: "Copy",
     copied: "Copied!",
+    eidSchedule: "Eid Schedule",
+    eidScheduleData: {
+      title: "Eid Ul - Fitr 1447/2026",
+      location: "Mesquita Hazrat Hamza (R.A)",
+      address: "Trav. Lourerro 19-A, 4000-329 Porto, Portugal",
+      addressLabel: "Address",
+      prayerLocation: "Prayer will be held inside the mosque",
+      mapsLink: "https://www.google.com/maps/search/?api=1&query=Trav.+Lourerro+19-A,+4000-329+Porto,+Portugal",
+      fajr: "Salat al Fajr - 6:00",
+      prayers: [
+        { time: "7:00", label: "1º salat Eid" },
+        { time: "7:45", label: "2º salat Eid" },
+        { time: "8:30", label: "3º salat Eid" },
+        { time: "9:15", label: "4º salat Eid" },
+        { time: "10:00", label: "5º salat Eid" }
+      ],
+      announcement: "The day of Eid will be announced after Salat al Maghrib on the 29th of Ramadan 1447 (March 18, 2026).",
+      fitra: "SADAQAT-UL-FITR: 5 EURO (MINIMUM PER PERSON)"
+    },
     hadith: "Narrated Abu Huraira: The Prophet said, \"(Allah said), 'Every good deed of Adam's son is for him except fasting; it is for Me. and I shall reward (the fasting person) for it.' Verily, the smell of the mouth of a fasting person is better to Allah than the smell of musk.\" (Sahih al-Bukhari 5927)",
     showCounter: "Show Counter",
     suhoorCounter: "Suhoor Counter",
@@ -129,6 +148,25 @@ export const TRANSLATIONS: Record<Language, any> = {
     swift: "SWIFT",
     copy: "কপি",
     copied: "কপি হয়েছে!",
+    eidSchedule: "ঈদের নামাজের সূচি",
+    eidScheduleData: {
+      title: "ঈদুল ফিতর ১৪৪৭/২০২৬",
+      location: "মসজিদ হযরত হামজা (রা:)",
+      address: "Trav. Lourerro 19-A, 4000-329 Porto, Portugal",
+      addressLabel: "ঠিকানা",
+      prayerLocation: "নামাজ মসজিদের ভিতরে হবে",
+      mapsLink: "https://www.google.com/maps/search/?api=1&query=Trav.+Lourerro+19-A,+4000-329+Porto,+Portugal",
+      fajr: "সালাতুল ফজর - ৬:০০",
+      prayers: [
+        { time: "৭:০০", label: "১ম ঈদের জামাত" },
+        { time: "৭:৪৫", label: "২য় ঈদের জামাত" },
+        { time: "৮:৩০", label: "৩য় ঈদের জামাত" },
+        { time: "৯:১৫", label: "৪র্থ ঈদের জামাত" },
+        { time: "১০:০০", label: "৫ম ঈদের জামাত" }
+      ],
+      announcement: "২৯শে রমজান ১৪৪৭ (১৮ই মার্চ ২০২৬) মাগরিবের নামাজের পর ঈদের দিন ঘোষণা করা হবে।",
+      fitra: "সাদাকাতুল ফিতর: ৫ ইউরো (জনপ্রতি সর্বনিম্ন)"
+    },
     hadith: "আবু হুরায়রা (রাঃ) থেকে বর্ণিতঃ রাসূলুল্লাহ (সাল্লাল্লাহু ‘আলাইহি ওয়া সাল্লাম) বলেছেন, আল্লাহ তা'আলা বলেন, বনী আদমের প্রতিটি আমল তার নিজের জন্য, শুধু রোজা ব্যতীত; কারণ তা আমার জন্য এবং আমিই এর প্রতিদান দেব। নিশ্চয়ই রোজাদারের মুখের গন্ধ আল্লাহর নিকট কস্তুরীর সুগন্ধির চেয়েও অধিক প্রিয়। (সহীহ বুখারী ৫৯২৭)",
     listenAdhan: "আযান শুনুন",
     stopAlarm: "এলার্ম বন্ধ করুন",
@@ -186,6 +224,25 @@ export const TRANSLATIONS: Record<Language, any> = {
     swift: "SWIFT",
     copy: "Copiar",
     copied: "Copiado!",
+    eidSchedule: "Horário de Eid",
+    eidScheduleData: {
+      title: "Eid Ul - Fitr 1447/2026",
+      location: "Mesquita Hazrat Hamza (R.A)",
+      address: "Trav. Lourerro 19-A, 4000-329 Porto, Portugal",
+      addressLabel: "Endereço",
+      prayerLocation: "A oração será realizada dentro da mesquita",
+      mapsLink: "https://www.google.com/maps/search/?api=1&query=Trav.+Lourerro+19-A,+4000-329+Porto,+Portugal",
+      fajr: "Salat al Fajr - 6:00",
+      prayers: [
+        { time: "7:00", label: "1º salat Eid" },
+        { time: "7:45", label: "2º salat Eid" },
+        { time: "8:30", label: "3º salat Eid" },
+        { time: "9:15", label: "4º salat Eid" },
+        { time: "10:00", label: "5º salat Eid" }
+      ],
+      announcement: "O dia de eid será divulgado apos salat de Maghrib do dia 29 de Ramadan 1447 (18 de Marco de 2026).",
+      fitra: "SADAQAT-UL-FITR: 5 EURO (POR PESSOA MINIMO)"
+    },
     hadith: "Narrado por Abu Huraira: O Profeta disse: \"(Allah disse), 'Toda boa ação do filho de Adão é para ele, exceto o jejum; é para Mim, e Eu recompensarei (a pessoa que jejua) por isso.' Em verdade, o cheiro da boca de uma pessoa que jejua é melhor para Allah do que o cheiro do almíscar.\" (Sahih al-Bukhari 5927)",
     showCounter: "Mostrar Contador",
     suhoorCounter: "Contador Suhur",
