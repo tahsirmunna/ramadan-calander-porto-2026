@@ -23,6 +23,8 @@ import {
   Copy,
   Maximize2
 } from 'lucide-react';
+import { motion } from 'framer-motion';
+import confetti from 'canvas-confetti';
 
 import { Language, AppSettings } from './types';
 import { CALENDAR_DATA, TRANSLATIONS } from './constants';
@@ -82,7 +84,74 @@ export default function App() {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [showCountdownPopup, setShowCountdownPopup] = useState(false);
   const [showEidSchedule, setShowEidSchedule] = useState(false);
+  const [showTextFirework, setShowTextFirework] = useState(false);
   const [popupType, setPopupType] = useState<'suhoor' | 'iftar' | null>(null);
+  const fireworksIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const triggerFireworks = () => {
+    if (typeof window === 'undefined') return;
+
+    const duration = 5 * 1000;
+    const animationEnd = Date.now() + duration;
+    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
+
+    const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+    if (fireworksIntervalRef.current) {
+      clearInterval(fireworksIntervalRef.current);
+    }
+
+    fireworksIntervalRef.current = setInterval(function() {
+      const timeLeft = animationEnd - Date.now();
+
+      if (timeLeft <= 0) {
+        if (fireworksIntervalRef.current) {
+          clearInterval(fireworksIntervalRef.current);
+          fireworksIntervalRef.current = null;
+        }
+        return;
+      }
+
+      const particleCount = 50 * (timeLeft / duration);
+      
+      try {
+        confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+        confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+      } catch (err) {
+        console.error("Confetti error:", err);
+        if (fireworksIntervalRef.current) {
+          clearInterval(fireworksIntervalRef.current);
+          fireworksIntervalRef.current = null;
+        }
+      }
+    }, 250);
+  };
+
+  useEffect(() => {
+    // Show text firework after a short delay on mount
+    const timer = setTimeout(() => setShowTextFirework(true), 500);
+    return () => {
+      clearTimeout(timer);
+      if (fireworksIntervalRef.current) {
+        clearInterval(fireworksIntervalRef.current);
+        fireworksIntervalRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (showTextFirework) {
+      triggerFireworks();
+      const timer = setTimeout(() => setShowTextFirework(false), 4000);
+      return () => {
+        clearTimeout(timer);
+        if (fireworksIntervalRef.current) {
+          clearInterval(fireworksIntervalRef.current);
+          fireworksIntervalRef.current = null;
+        }
+      };
+    }
+  }, [showTextFirework]);
   const [lastPopupClosedTime, setLastPopupClosedTime] = useState<number | null>(null);
   const wakeLockRef = useRef<any>(null);
 
@@ -660,6 +729,20 @@ export default function App() {
             {t.eidSchedule}
           </span>
         </button>
+
+        {/* Main Screen Greeting */}
+        <div className="w-full flex justify-center -mt-2 mb-2">
+          <div className="relative py-2 px-6 inline-block">
+            <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 via-emerald-500/10 to-amber-500/10 rounded-2xl border border-amber-500/20 backdrop-blur-sm shadow-[0_0_15px_rgba(245,158,11,0.05)]"></div>
+            <p className={`relative text-xs md:text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-white to-emerald-400 drop-shadow-sm ${isBengali ? 'font-bengali-bold' : ''}`}>
+              {isBengali ? (
+                <>
+                  সবাইকে ঈদুল ফিতরের শুভেচ্ছা। <span className="text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)] scale-110 inline-block ml-1">ঈদ মোবারক</span>
+                </>
+              ) : t.eidScheduleData.eidGreeting}
+            </p>
+          </div>
+        </div>
       </header>
 
       <main className="w-full max-w-4xl z-10 flex flex-col gap-4 md:gap-8">
@@ -1006,8 +1089,23 @@ export default function App() {
             </div>
             
             <div className="space-y-8">
-              <div className="text-center space-y-2">
+              <div className="text-center space-y-3">
                 <h3 className="text-2xl md:text-4xl font-black text-white tracking-tight">{t.eidScheduleData.title}</h3>
+                
+                {/* Highlighted Greeting */}
+                <div className="relative py-4 px-8 inline-block my-2">
+                  <div className="absolute inset-0 bg-gradient-to-r from-amber-500/15 via-emerald-500/15 to-amber-500/15 rounded-3xl border border-amber-500/40 backdrop-blur-md shadow-[0_0_30px_rgba(245,158,11,0.2)]"></div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-amber-500/30 via-emerald-500/30 to-amber-500/30 blur-3xl rounded-full animate-pulse opacity-50"></div>
+                  <p className={`relative text-xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-white to-emerald-400 drop-shadow-lg ${isBengali ? 'font-bengali-bold' : ''}`}>
+                    {isBengali ? (
+                      <>
+                        সবাইকে ঈদুল ফিতরের শুভেচ্ছা। <br className="md:hidden" />
+                        <span className="text-amber-400 drop-shadow-[0_0_15px_rgba(251,191,36,0.8)] scale-110 inline-block mt-2 md:mt-0 md:ml-2 animate-bounce-slow">ঈদ মোবারক</span>
+                      </>
+                    ) : t.eidScheduleData.eidGreeting}
+                  </p>
+                </div>
+
                 <p className="text-amber-500 font-bold tracking-[0.15em] text-sm md:text-base uppercase">{t.eidScheduleData.location}</p>
                 <p className={`text-emerald-400 font-bold text-xs md:text-sm uppercase tracking-widest ${isBengali ? 'font-bengali' : ''}`}>{t.eidScheduleData.prayerLocation}</p>
               </div>
@@ -1161,6 +1259,71 @@ export default function App() {
           </a>
         </div>
       </footer>
+
+      {/* Full screen Text Firework */}
+      {showTextFirework && (
+        <div className="fixed inset-0 z-[150] pointer-events-none flex items-center justify-center overflow-hidden">
+          <motion.div
+            initial={{ scale: 0, opacity: 0, y: 200 }}
+            animate={{ 
+              scale: [0, 1.2, 1], 
+              opacity: [0, 1, 1, 0],
+              y: [200, 0, -50],
+              rotate: [0, -5, 5, 0]
+            }}
+            transition={{ 
+              duration: 3.5, 
+              times: [0, 0.2, 0.8, 1],
+              ease: "easeOut" 
+            }}
+            className="relative"
+          >
+            {/* Glow effect */}
+            <div className="absolute inset-0 bg-amber-500 blur-[100px] opacity-30 animate-pulse"></div>
+            
+            <div className="relative flex flex-col items-center">
+              <motion.div
+                animate={{ 
+                  filter: ["drop-shadow(0 0 10px #f59e0b)", "drop-shadow(0 0 50px #f59e0b)", "drop-shadow(0 0 10px #f59e0b)"],
+                  scale: [1, 1.05, 1]
+                }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                <h1 className={`text-7xl md:text-[12rem] font-black text-transparent bg-clip-text bg-gradient-to-b from-white via-amber-200 to-amber-500 text-center drop-shadow-[0_0_30px_rgba(245,158,11,0.5)] ${isBengali ? 'font-bengali-bold leading-tight' : ''}`}>
+                  {t.eidMubarak}
+                </h1>
+              </motion.div>
+              
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
+                className="flex gap-4 mt-4"
+              >
+                <Sparkles className="w-8 h-8 text-amber-400 animate-bounce" />
+                <Moon className="w-8 h-8 text-emerald-400 animate-spin-slow" />
+                <Sparkles className="w-8 h-8 text-amber-400 animate-bounce" style={{ animationDelay: '0.2s' }} />
+              </motion.div>
+            </div>
+
+            {/* Particle explosions around the text */}
+            {[...Array(12)].map((_, i) => (
+              <motion.div
+                key={i}
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ 
+                  scale: [0, 1, 0], 
+                  opacity: [0, 1, 0],
+                  x: Math.cos(i * 30 * Math.PI / 180) * 200,
+                  y: Math.sin(i * 30 * Math.PI / 180) * 200
+                }}
+                transition={{ duration: 2, delay: 0.2 + (i * 0.05), repeat: 1 }}
+                className="absolute top-1/2 left-1/2 w-2 h-2 bg-amber-400 rounded-full"
+              />
+            ))}
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

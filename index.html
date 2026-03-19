@@ -87,6 +87,22 @@
             animation: float 6s ease-in-out infinite;
         }
 
+        @keyframes spin-slow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin-slow {
+            animation: spin-slow 12s linear infinite;
+        }
+
+        @keyframes float-slow {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        .animate-float-slow {
+            animation: float-slow 4s ease-in-out infinite;
+        }
+
         .glass-panel {
             background: rgba(15, 23, 42, 0.6);
             backdrop-filter: blur(16px);

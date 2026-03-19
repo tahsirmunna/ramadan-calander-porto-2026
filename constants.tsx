@@ -93,7 +93,8 @@ export const TRANSLATIONS: Record<Language, any> = {
         { time: "10:00", label: "5º salat Eid" }
       ],
       announcement: "The day of Eid will be announced after Salat al Maghrib on the 29th of Ramadan 1447 (March 18, 2026).",
-      fitra: "SADAQAT-UL-FITR: 5 EURO (MINIMUM PER PERSON)"
+      fitra: "SADAQAT-UL-FITR: 5 EURO (MINIMUM PER PERSON)",
+      eidGreeting: "Eid-ul-Fitr greetings to everyone. Eid Mubarak"
     },
     hadith: "Narrated Abu Huraira: The Prophet said, \"(Allah said), 'Every good deed of Adam's son is for him except fasting; it is for Me. and I shall reward (the fasting person) for it.' Verily, the smell of the mouth of a fasting person is better to Allah than the smell of musk.\" (Sahih al-Bukhari 5927)",
     showCounter: "Show Counter",
@@ -107,7 +108,8 @@ export const TRANSLATIONS: Record<Language, any> = {
       Monday: 'Monday', Tuesday: 'Tuesday', Wednesday: 'Wednesday', Thursday: 'Thursday',
       Friday: 'Friday', Saturday: 'Saturday', Sunday: 'Sunday'
     },
-    months: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+    months: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+    eidMubarak: "Eid Mubarak"
   },
   [Language.BN]: {
     title: "মসজিদ হযরত হামজা (রা:) - সময়সূচী",
@@ -165,7 +167,8 @@ export const TRANSLATIONS: Record<Language, any> = {
         { time: "১০:০০", label: "৫ম ঈদের জামাত" }
       ],
       announcement: "২৯শে রমজান ১৪৪৭ (১৮ই মার্চ ২০২৬) মাগরিবের নামাজের পর ঈদের দিন ঘোষণা করা হবে।",
-      fitra: "সাদাকাতুল ফিতর: ৫ ইউরো (জনপ্রতি সর্বনিম্ন)"
+      fitra: "সাদাকাতুল ফিতর: ৫ ইউরো (জনপ্রতি সর্বনিম্ন)",
+      eidGreeting: "সবাইকে ঈদুল ফিতরের শুভেচ্ছা। ঈদ মোবারক"
     },
     hadith: "আবু হুরায়রা (রাঃ) থেকে বর্ণিতঃ রাসূলুল্লাহ (সাল্লাল্লাহু ‘আলাইহি ওয়া সাল্লাম) বলেছেন, আল্লাহ তা'আলা বলেন, বনী আদমের প্রতিটি আমল তার নিজের জন্য, শুধু রোজা ব্যতীত; কারণ তা আমার জন্য এবং আমিই এর প্রতিদান দেব। নিশ্চয়ই রোজাদারের মুখের গন্ধ আল্লাহর নিকট কস্তুরীর সুগন্ধির চেয়েও অধিক প্রিয়। (সহীহ বুখারী ৫৯২৭)",
     listenAdhan: "আযান শুনুন",
@@ -181,7 +184,8 @@ export const TRANSLATIONS: Record<Language, any> = {
       Monday: 'সোমবার', Tuesday: 'মঙ্গলবার', Wednesday: 'বুধবার', Thursday: 'বৃহস্পতিবার',
       Friday: 'শুক্রবার', Saturday: 'শনিবার', Sunday: 'রবিবার'
     },
-    months: ["জানুয়ারি", "ফেব্রুয়ারি", "মার্চ", "এপ্রিল", "মে", "জুন জুলাই", "আগস্ট", "সেপ্টেম্বর", "অক্টোবর", "নভেম্বর", "ডিসেম্বর"]
+    months: ["জানুয়ারি", "ফেব্রুয়ারি", "মার্চ", "এপ্রিল", "মে", "জুন জুলাই", "আগস্ট", "সেপ্টেম্বর", "অক্টোবর", "নভেম্বর", "ডিসেম্বর"],
+    eidMubarak: "ঈদ মোবারক"
   },
   [Language.PT]: {
     title: "Mesquita Hazrat Hamza (R.A) - Horário",
@@ -241,7 +245,8 @@ export const TRANSLATIONS: Record<Language, any> = {
         { time: "10:00", label: "5º salat Eid" }
       ],
       announcement: "O dia de eid será divulgado apos salat de Maghrib do dia 29 de Ramadan 1447 (18 de Marco de 2026).",
-      fitra: "SADAQAT-UL-FITR: 5 EURO (POR PESSOA MINIMO)"
+      fitra: "SADAQAT-UL-FITR: 5 EURO (POR PESSOA MINIMO)",
+      eidGreeting: "Saudações de Eid-ul-Fitr a todos. Eid Mubarak"
     },
     hadith: "Narrado por Abu Huraira: O Profeta disse: \"(Allah disse), 'Toda boa ação do filho de Adão é para ele, exceto o jejum; é para Mim, e Eu recompensarei (a pessoa que jejua) por isso.' Em verdade, o cheiro da boca de uma pessoa que jejua é melhor para Allah do que o cheiro do almíscar.\" (Sahih al-Bukhari 5927)",
     showCounter: "Mostrar Contador",
@@ -255,6 +260,7 @@ export const TRANSLATIONS: Record<Language, any> = {
       Monday: 'Segunda', Tuesday: 'Terça', Wednesday: 'Quarta', Thursday: 'Quinta',
       Friday: 'Sexta', Saturday: 'Sábado', Sunday: 'Domingo'
     },
-    months: ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
+    months: ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"],
+    eidMubarak: "Eid Mubarak"
   }
 };
