@@ -83,7 +83,7 @@ export default function App() {
   const [showCopied, setShowCopied] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [showCountdownPopup, setShowCountdownPopup] = useState(false);
-  const [showEidSchedule, setShowEidSchedule] = useState(false);
+  const [showEidSchedule, setShowEidSchedule] = useState(true);
   const [showTextFirework, setShowTextFirework] = useState(false);
   const [popupType, setPopupType] = useState<'suhoor' | 'iftar' | null>(null);
   const fireworksIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -256,7 +256,7 @@ export default function App() {
     else if (hour >= 18 && hour < 20) period = p.evening;
     else period = p.night;
 
-    const displayHour = hour % 12 || 12;
+    const displayHour = hour.toString().padStart(2, '0');
     const displayMinute = minute.toString().padStart(2, '0');
     const displaySecond = second.toString().padStart(2, '0');
 
@@ -272,7 +272,7 @@ export default function App() {
         1: '১ম', 2: '২য়', 3: '৩য়', 4: '৪র্থ', 5: '৫ম',
         6: '৬ষ্ঠ', 7: '৭ম', 8: '৮ম', 9: '৯ম', 10: '১০ম'
       };
-      return `${ordinals[day] || formatValue(day) + 'তম'} ${t.ramadanMonth}`;
+      return `${ordinals[day] || formatValue(day) + ' তম'} ${t.ramadanMonth}`;
     }
     if (settings.language === Language.PT) return `${day}º ${t.ramadanMonth}`;
     const j = day % 10, k = day % 100;
@@ -650,102 +650,105 @@ export default function App() {
         <Lantern className="float-animation" style={{ animationDelay: '1s' }} />
       </div>
 
-      <header className="w-full max-w-4xl flex flex-col items-center gap-6 mb-8 md:mb-12 z-30 -mt-2 md:-mt-4">
-        <div className="flex flex-row items-center text-left gap-4">
-          <div className="bg-amber-500/10 p-3 rounded-2xl border border-amber-500/20 shadow-[0_0_30px_rgba(245,158,11,0.15)] float-animation">
-            <Moon className="text-amber-500 w-8 h-8 md:w-10 md:h-10" />
-          </div>
-          <div>
-            <h1 className={`text-lg md:text-3xl font-black tracking-tight leading-tight mb-1 ${isBengali ? 'font-bengali-bold text-amber-500' : 'text-white'}`}>{t.title}</h1>
-            <div className="flex items-center justify-start gap-2">
-              <MapPin className="w-3 h-3 text-slate-500" />
-              <p className="text-[8px] md:text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] opacity-80">{t.subTitle}</p>
+      {!showEidSchedule && (
+        <header className="w-full max-w-4xl flex flex-col items-center gap-6 mb-8 md:mb-12 z-30 -mt-2 md:-mt-4">
+          <div className="flex flex-row items-center text-left gap-4">
+            <div className="bg-amber-500/10 p-3 rounded-2xl border border-amber-500/20 shadow-[0_0_30px_rgba(245,158,11,0.15)] float-animation">
+              <Moon className="text-amber-500 w-8 h-8 md:w-10 md:h-10" />
+            </div>
+            <div>
+              <h1 className={`text-lg md:text-3xl font-black tracking-tight leading-tight mb-1 ${isBengali ? 'font-bengali-bold text-amber-500' : 'text-white'}`}>{t.title}</h1>
+              <div className="flex items-center justify-start gap-2">
+                <MapPin className="w-3 h-3 text-slate-500" />
+                <p className="text-[8px] md:text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] opacity-80">{t.subTitle}</p>
+              </div>
             </div>
           </div>
-        </div>
-        
-        <div className="flex items-center gap-2 bg-slate-950/40 p-1.5 rounded-2xl border border-slate-800/50 backdrop-blur-md shadow-2xl">
-          <button onClick={() => { setShowDonate(true); setShowFullCalendar(false); }} className={`p-3 rounded-xl transition-all flex items-center gap-2 hover:bg-slate-800/60 text-slate-400 hover:text-amber-500`}>
-            <HandHeart className="w-5 h-5" />
-            <span className="hidden md:inline text-[10px] font-black uppercase tracking-widest">{t.donate}</span>
-          </button>
-
-          <div className="w-px h-6 bg-slate-800/50 mx-1"></div>
-
-          <button onClick={() => { setShowFullCalendar(!showFullCalendar); }} className={`p-3 rounded-xl transition-all flex items-center gap-2 ${showFullCalendar ? 'bg-amber-500/20 text-amber-500' : 'hover:bg-slate-800/60 text-slate-400 hover:text-amber-500'}`}>
-            {showFullCalendar ? <LayoutGrid className="w-5 h-5" /> : <List className="w-5 h-5" />}
-            <span className="hidden md:inline text-[10px] font-black uppercase tracking-widest">{t.fullCalendar}</span>
-          </button>
-
-          <div className="w-px h-6 bg-slate-800/50 mx-1"></div>
           
-          <button onClick={() => setIsSettingsOpen(true)} className="p-3 rounded-xl hover:bg-slate-800/60 text-slate-400 hover:text-amber-500 transition-all flex items-center gap-2 group">
-            <Bell className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-            <span className={`hidden md:inline text-[10px] font-black uppercase tracking-widest ${isBengali ? 'font-bengali-bold' : ''}`}>{t.alarmsBtn}</span>
-          </button>
-          
-          <div className="w-px h-6 bg-slate-800/50 mx-1"></div>
-          
-          <div className="relative">
-            <button onClick={() => setIsLangMenuOpen(!isLangMenuOpen)} className="p-3 rounded-xl hover:bg-slate-800/60 text-slate-400 hover:text-amber-500 transition-all flex items-center gap-2">
-              <Globe className="w-5 h-5" />
-              <span className="text-[10px] font-black uppercase tracking-tighter">{settings.language.toUpperCase()}</span>
+          <div className="flex items-center gap-2 bg-slate-950/40 p-1.5 rounded-2xl border border-slate-800/50 backdrop-blur-md shadow-2xl">
+            <button onClick={() => { setShowDonate(true); setShowFullCalendar(false); }} className={`p-3 rounded-xl transition-all flex items-center gap-2 hover:bg-slate-800/60 text-slate-400 hover:text-amber-500`}>
+              <HandHeart className="w-5 h-5" />
+              <span className="hidden md:inline text-[10px] font-black uppercase tracking-widest">{t.donate}</span>
             </button>
-            {isLangMenuOpen && (
+
+            <div className="w-px h-6 bg-slate-800/50 mx-1"></div>
+
+            <button onClick={() => { setShowFullCalendar(!showFullCalendar); }} className={`p-3 rounded-xl transition-all flex items-center gap-2 ${showFullCalendar ? 'bg-amber-500/20 text-amber-500' : 'hover:bg-slate-800/60 text-slate-400 hover:text-amber-500'}`}>
+              {showFullCalendar ? <LayoutGrid className="w-5 h-5" /> : <List className="w-5 h-5" />}
+              <span className="hidden md:inline text-[10px] font-black uppercase tracking-widest">{t.fullCalendar}</span>
+            </button>
+
+            <div className="w-px h-6 bg-slate-800/50 mx-1"></div>
+            
+            <button onClick={() => setIsSettingsOpen(true)} className="p-3 rounded-xl hover:bg-slate-800/60 text-slate-400 hover:text-amber-500 transition-all flex items-center gap-2 group">
+              <Bell className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+              <span className={`hidden md:inline text-[10px] font-black uppercase tracking-widest ${isBengali ? 'font-bengali-bold' : ''}`}>{t.alarmsBtn}</span>
+            </button>
+            
+            <div className="w-px h-6 bg-slate-800/50 mx-1"></div>
+            
+            <div className="relative">
+              <button onClick={() => setIsLangMenuOpen(!isLangMenuOpen)} className="p-3 rounded-xl hover:bg-slate-800/60 text-slate-400 hover:text-amber-500 transition-all flex items-center gap-2">
+                <Globe className="w-5 h-5" />
+                <span className="text-[10px] font-black uppercase tracking-tighter">{settings.language.toUpperCase()}</span>
+              </button>
+              {isLangMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setIsLangMenuOpen(false)}></div>
+                  <div className="absolute right-0 top-full mt-4 w-44 bg-slate-900/95 border border-slate-700/50 rounded-2xl shadow-2xl z-50 overflow-hidden backdrop-blur-2xl">
+                    {(Object.values(Language) as Language[]).map(lang => (
+                      <button key={lang} onClick={() => { setSettings(s => ({...s, language: lang})); setIsLangMenuOpen(false); }} className={`w-full text-left px-6 py-4 text-xs font-bold hover:bg-slate-800 transition-colors flex items-center justify-between ${settings.language === lang ? 'bg-amber-500/10 text-amber-500' : 'text-slate-400'}`}>
+                        <span>{lang === Language.EN ? 'English' : lang === Language.BN ? 'বাংলা' : 'Português'}</span>
+                        {settings.language === lang && <Check className="w-4 h-4" />}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {isAudioPlaying && (
               <>
-                <div className="fixed inset-0 z-40" onClick={() => setIsLangMenuOpen(false)}></div>
-                <div className="absolute right-0 top-full mt-4 w-44 bg-slate-900/95 border border-slate-700/50 rounded-2xl shadow-2xl z-50 overflow-hidden backdrop-blur-2xl">
-                  {(Object.values(Language) as Language[]).map(lang => (
-                    <button key={lang} onClick={() => { setSettings(s => ({...s, language: lang})); setIsLangMenuOpen(false); }} className={`w-full text-left px-6 py-4 text-xs font-bold hover:bg-slate-800 transition-colors flex items-center justify-between ${settings.language === lang ? 'bg-amber-500/10 text-amber-500' : 'text-slate-400'}`}>
-                      <span>{lang === Language.EN ? 'English' : lang === Language.BN ? 'বাংলা' : 'Português'}</span>
-                      {settings.language === lang && <Check className="w-4 h-4" />}
-                    </button>
-                  ))}
-                </div>
+                <div className="w-px h-6 bg-slate-800/50 mx-1"></div>
+                <button 
+                  onClick={() => stopCurrentAudio()} 
+                  className="p-3 rounded-xl bg-red-500/20 text-red-500 hover:bg-red-500/30 transition-all flex items-center gap-2 animate-pulse"
+                >
+                  <VolumeX className="w-5 h-5" />
+                  <span className="hidden md:inline text-[10px] font-black uppercase tracking-widest">{t.stopAlarm}</span>
+                </button>
               </>
             )}
           </div>
 
-          {isAudioPlaying && (
-            <>
-              <div className="w-px h-6 bg-slate-800/50 mx-1"></div>
-              <button 
-                onClick={() => stopCurrentAudio()} 
-                className="p-3 rounded-xl bg-red-500/20 text-red-500 hover:bg-red-500/30 transition-all flex items-center gap-2 animate-pulse"
-              >
-                <VolumeX className="w-5 h-5" />
-                <span className="hidden md:inline text-[10px] font-black uppercase tracking-widest">{t.stopAlarm}</span>
-              </button>
-            </>
-          )}
-        </div>
+          <button 
+            onClick={() => setShowEidSchedule(true)} 
+            className="w-full max-w-4xl p-4 md:p-5 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-500 transition-all flex items-center justify-center gap-3 group shadow-lg shadow-amber-500/5"
+          >
+            <Maximize2 className="w-5 h-5 md:w-6 md:h-6 group-hover:scale-110 transition-transform" />
+            <span className={`text-xs md:text-base font-black uppercase tracking-[0.2em] ${isBengali ? 'font-bengali-bold' : ''}`}>
+              {t.eidSchedule}
+            </span>
+          </button>
 
-        <button 
-          onClick={() => setShowEidSchedule(true)} 
-          className="w-full max-w-4xl p-4 md:p-5 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-500 transition-all flex items-center justify-center gap-3 group shadow-lg shadow-amber-500/5"
-        >
-          <Maximize2 className="w-5 h-5 md:w-6 md:h-6 group-hover:scale-110 transition-transform" />
-          <span className={`text-xs md:text-base font-black uppercase tracking-[0.2em] ${isBengali ? 'font-bengali-bold' : ''}`}>
-            {t.eidSchedule}
-          </span>
-        </button>
-
-        {/* Main Screen Greeting */}
-        <div className="w-full flex justify-center -mt-2 mb-2">
-          <div className="relative py-2 px-6 inline-block">
-            <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 via-emerald-500/10 to-amber-500/10 rounded-2xl border border-amber-500/20 backdrop-blur-sm shadow-[0_0_15px_rgba(245,158,11,0.05)]"></div>
-            <p className={`relative text-xs md:text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-white to-emerald-400 drop-shadow-sm ${isBengali ? 'font-bengali-bold' : ''}`}>
-              {isBengali ? (
-                <>
-                  সবাইকে ঈদুল ফিতরের শুভেচ্ছা। <span className="text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)] scale-110 inline-block ml-1">ঈদ মোবারক</span>
-                </>
-              ) : t.eidScheduleData.eidGreeting}
-            </p>
+          {/* Main Screen Greeting */}
+          <div className="w-full flex justify-center -mt-2 mb-2">
+            <div className="relative py-2 px-6 inline-block">
+              <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 via-emerald-500/10 to-amber-500/10 rounded-2xl border border-amber-500/20 backdrop-blur-sm shadow-[0_0_15px_rgba(245,158,11,0.05)]"></div>
+              <p className={`relative text-xs md:text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-white to-emerald-400 drop-shadow-sm ${isBengali ? 'font-bengali-bold' : ''}`}>
+                {isBengali ? (
+                  <>
+                    সবাইকে ঈদুল ফিতরের শুভেচ্ছা। <span className="text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)] scale-110 inline-block ml-1">ঈদ মোবারক</span>
+                  </>
+                ) : t.eidScheduleData.eidGreeting}
+              </p>
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
+      )}
 
-      <main className="w-full max-w-4xl z-10 flex flex-col gap-4 md:gap-8">
+      {!showEidSchedule && (
+        <main className="w-full max-w-4xl z-10 flex flex-col gap-4 md:gap-8">
         {!showFullCalendar ? (
           <>
             <div className="glass-panel rounded-[2rem] md:rounded-[3.5rem] p-4 md:p-14 relative overflow-hidden group">
@@ -930,8 +933,9 @@ export default function App() {
           </div>
         )}
       </main>
+      )}
 
-      {isSettingsOpen && (
+      {!showEidSchedule && isSettingsOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-xl" onClick={() => { stopCurrentAudio(); setIsSettingsOpen(false); }}></div>
           <div className="bg-slate-900 border border-slate-700/50 w-full max-w-lg rounded-[2.5rem] p-8 shadow-2xl relative z-110 animate-in fade-in zoom-in duration-300">
@@ -989,7 +993,7 @@ export default function App() {
         </div>
       )}
 
-      {showCountdownPopup && popupType && (
+      {!showEidSchedule && showCountdownPopup && popupType && (
         <div className="fixed inset-0 z-[200] bg-slate-950/95 backdrop-blur-3xl animate-in fade-in duration-300 overflow-y-auto">
           <div className="min-h-screen w-full flex flex-col items-center p-4 py-12 md:p-12">
             <button 
@@ -1081,11 +1085,10 @@ export default function App() {
 
       {showEidSchedule && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-slate-950/95 backdrop-blur-xl" onClick={() => setShowEidSchedule(false)}></div>
+          <div className="fixed inset-0 bg-slate-950/95 backdrop-blur-xl"></div>
           <div className="bg-slate-900 border border-slate-700/50 w-full max-w-2xl rounded-[2.5rem] p-6 md:p-10 shadow-2xl relative z-[160] animate-in fade-in zoom-in duration-300 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex justify-center items-center mb-8">
               <h2 className="text-2xl md:text-3xl font-black text-amber-500">{t.eidSchedule}</h2>
-              <button onClick={() => setShowEidSchedule(false)} className="p-2 hover:bg-slate-800 rounded-full transition-colors"><X className="w-6 h-6 text-slate-400" /></button>
             </div>
             
             <div className="space-y-8">
@@ -1161,7 +1164,7 @@ export default function App() {
         </div>
       )}
 
-      {showDonate && (
+      {!showEidSchedule && showDonate && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-xl" onClick={() => setShowDonate(false)}></div>
           <div className="bg-slate-900 border border-slate-700/50 w-full max-w-2xl rounded-[2.5rem] p-6 md:p-10 shadow-2xl relative z-110 animate-in fade-in zoom-in duration-300 max-h-[90vh] overflow-y-auto">
@@ -1239,7 +1242,8 @@ export default function App() {
         </div>
       )}
 
-      <footer className="mt-auto pt-8 pb-10 text-center z-30">
+      {!showEidSchedule && (
+        <footer className="mt-auto pt-8 pb-10 text-center z-30">
         <div className="mb-6 px-4">
           <p className="text-[10px] md:text-xs text-amber-500/70 italic font-medium tracking-wide">
             {t.hadith}
@@ -1259,6 +1263,7 @@ export default function App() {
           </a>
         </div>
       </footer>
+      )}
 
       {/* Full screen Text Firework */}
       {showTextFirework && (
