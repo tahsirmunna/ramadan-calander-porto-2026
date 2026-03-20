@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
+const confettiFunc = (confetti as any).default || confetti;
 
 import { Language, AppSettings } from './types';
 import { CALENDAR_DATA, TRANSLATIONS } from './constants';
@@ -86,10 +87,23 @@ export default function App() {
   const [showEidSchedule, setShowEidSchedule] = useState(true);
   const [showTextFirework, setShowTextFirework] = useState(false);
   const [popupType, setPopupType] = useState<'suhoor' | 'iftar' | null>(null);
-  const fireworksIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const fireworksIntervalRef = useRef<any>(null);
+  const confettiCanvasRef = useRef<HTMLCanvasElement>(null);
+  const confettiInstanceRef = useRef<any>(null);
 
   const triggerFireworks = () => {
     if (typeof window === 'undefined') return;
+
+    // Initialize confetti instance if not already done
+    if (!confettiInstanceRef.current && confettiCanvasRef.current) {
+      const createFunc = confettiFunc.create || (confetti as any).create;
+      if (typeof createFunc === 'function') {
+        confettiInstanceRef.current = createFunc(confettiCanvasRef.current, {
+          resize: true,
+          useWorker: true
+        });
+      }
+    }
 
     const duration = 5 * 1000;
     const animationEnd = Date.now() + duration;
@@ -115,8 +129,11 @@ export default function App() {
       const particleCount = 50 * (timeLeft / duration);
       
       try {
-        confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
-        confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+        const myConfetti = confettiInstanceRef.current || confettiFunc;
+        if (typeof myConfetti === 'function') {
+          myConfetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+          myConfetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+        }
       } catch (err) {
         console.error("Confetti error:", err);
         if (fireworksIntervalRef.current) {
@@ -644,6 +661,11 @@ export default function App() {
 
   return (
     <div className={`min-h-screen text-slate-100 flex flex-col items-center p-4 md:p-8 transition-all duration-700 ${isBengali ? 'font-bengali' : ''}`} onClick={() => { getAudioContext(); requestWakeLock(); }}>
+      {/* Confetti Canvas */}
+      <canvas
+        ref={confettiCanvasRef}
+        className="fixed inset-0 pointer-events-none z-[9999] w-full h-full"
+      />
       
       <div className="absolute top-0 left-0 w-full flex justify-between px-10 pointer-events-none opacity-40 md:opacity-100">
         <Lantern className="float-animation" />
